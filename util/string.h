@@ -1,25 +1,20 @@
 #pragma once
 #include <stdio.h>
 #include <time.h>
-
+#include <stdint.h>
 
 static int stoi(const char* string) {
 	int sign = (*string=='-') ? -1 : 1;
 	long n = 0;
-  
 	string += (*string == '+' || *string == '-') ? 1 : 0;
-
 	while (*string >= '0' && *string <= '9') n = n * 10 + (*string++ - '0');
-  
 	return (int)(sign * n);
 }
 
-
-static int m_strlen(const char* str, int buffcap) { //buff cap due to buffer overflow
+static int m_strlen(const char* str, int buffcap) {
 	if (buffcap <= 0) return 0;
 	int i = 0;
 	while (i < buffcap && str[i]) ++i;
-
 	return i;
 }
 
@@ -33,16 +28,7 @@ static void i32_to_str(int v, char* out, int* len) {
     unsigned int u = (v < 0) ? (unsigned int)(-v) : (unsigned int)v;
     char rev[16];
     int n = 0;
-
-    if (u == 0) {
-        rev[n++] = '0';
-    } else {
-        while (u) {
-            rev[n++] = (char)('0' + (u % 10));
-            u /= 10;
-        }
-    }
-
+    if (u == 0) { rev[n++] = '0'; } else { while (u) { rev[n++] = (char)('0' + (u % 10)); u /= 10; } }
     int k = 0;
     if (v < 0) out[k++] = '-';
     for (int i = 0; i < n; ++i) out[k++] = rev[n - 1 - i];
@@ -53,13 +39,11 @@ static void i32_to_str(int v, char* out, int* len) {
 static char* append_time_txt(char* s, int cap) {
     int n = slen(s);
     if (n >= cap) return NULL;
-
     time_t t = time(NULL);
     if (t != (time_t)-1) {
         int r = snprintf(s + n, (size_t)(cap - n), "%lld.txt", (long long)t);
         if (r > 0 && r < cap - n) return s;
     }
-
     const char* fb = "unknown.txt";
     int k = 0;
     while (fb[k]) ++k;
@@ -70,4 +54,66 @@ static char* append_time_txt(char* s, int cap) {
 
 static void largeWrite(const char* fname) {
     printf("[INFO] too many hits to output to stdout. Output - %s", fname);
+}
+
+/* UTF-8 helpers */
+
+static int utf8_decode_one(const char* s, uint32_t* cp) {
+    unsigned char c0 = (unsigned char)s[0];
+    if (c0 < 0x80) { *cp = c0; return c0 ? 1 : 0; }
+    if ((c0 >> 5) == 0x6) {
+        unsigned char c1 = (unsigned char)s[1];
+        if ((c1 & 0xC0) != 0x80) return 0;
+        *cp = ((uint32_t)(c0 & 0x1F) << 6) | (uint32_t)(c1 & 0x3F);
+        return 2;
+    }
+    if ((c0 >> 4) == 0xE) {
+        unsigned char c1 = (unsigned char)s[1], c2 = (unsigned char)s[2];
+        if (((c1 & 0xC0) != 0x80) || ((c2 & 0xC0) != 0x80)) return 0;
+        *cp = ((uint32_t)(c0 & 0x0F) << 12) | ((uint32_t)(c1 & 0x3F) << 6) | (uint32_t)(c2 & 0x3F);
+        return 3;
+    }
+    if ((c0 >> 3) == 0x1E) {
+        unsigned char c1 = (unsigned char)s[1], c2 = (unsigned char)s[2], c3 = (unsigned char)s[3];
+        if (((c1 & 0xC0) != 0x80) || ((c2 & 0xC0) != 0x80) || ((c3 & 0xC0) != 0x80)) return 0;
+        *cp = ((uint32_t)(c0 & 0x07) << 18) | ((uint32_t)(c1 & 0x3F) << 12) | ((uint32_t)(c2 & 0x3F) << 6) | (uint32_t)(c3 & 0x3F);
+        return 4;
+    }
+    return 0;
+}
+
+static int utf8_encode_one(uint32_t cp, char out[4]) {
+    if (cp <= 0x7F) { out[0] = (char)cp; return 1; }
+    if (cp <= 0x7FF) { out[0] = (char)(0xC0 | (cp >> 6)); out[1] = (char)(0x80 | (cp & 0x3F)); return 2; }
+    if (cp <= 0xFFFF) { out[0] = (char)(0xE0 | (cp >> 12)); out[1] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[2] = (char)(0x80 | (cp & 0x3F)); return 3; }
+    out[0] = (char)(0xF0 | (cp >> 18)); out[1] = (char)(0x80 | ((cp >> 12) & 0x3F)); out[2] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[3] = (char)(0x80 | (cp & 0x3F));
+    return 4;
+}
+
+static int utf8_to_u32(const char* s, uint32_t* out, int cap) {
+    int n = 0;
+    const char* p = s;
+    while (*p && n < cap) {
+        uint32_t cp; int adv = utf8_decode_one(p, &cp);
+        if (adv <= 0) break;
+        out[n++] = cp;
+        p += adv;
+    }
+    return n;
+}
+
+static int u32_index_of(const uint32_t* alph, int m, uint32_t cp) {
+    for (int i = 0; i < m; ++i) if (alph[i] == cp) return i;
+    return -1;
+}
+
+static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {
+    int k = 0;
+    for (int i = 0; i < n; ++i) {
+        char buf[4]; int len = utf8_encode_one(cps[i], buf);
+        if (k + len >= cap) break;
+        for (int j = 0; j < len; ++j) out[k++] = buf[j];
+    }
+    if (k < cap) out[k] = '\0';
+    return k;
 }
