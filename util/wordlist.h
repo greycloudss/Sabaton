@@ -10,8 +10,6 @@ typedef struct {
 	int regionSize;
 } Wordlist;
 
-
-
 int getCount(Wordlist wlist) {
 	if (!wlist.startPtr || !wlist.endPtr) return -1; 
 	int count = 0;
