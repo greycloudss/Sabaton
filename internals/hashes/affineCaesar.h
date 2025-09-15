@@ -6,4 +6,4 @@
 
 const char* pieceAffineCaesar(const char* alph, const char* encText, const char* knownFrag);
 const char* bruteAffineCaesar(const char* alph, const char* encText);
-const char* affineCaesarEntry(const char* alph, const char* encText, const char* knownFrag, const char flag);
+const char* affineCaesarEntry(const char* alph, const char* encText, const char* knownFrag);

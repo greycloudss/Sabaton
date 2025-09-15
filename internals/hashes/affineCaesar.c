@@ -2,15 +2,17 @@
 
 
 void decryptWithKey_affineCaesar(const char* alph, const char* enc, int a, int b, FILE* fptr) {
-    int alphLen = slen(alph);
-    int aInverse;
+    if (!alph || !enc || !fptr) return;
 
-    if (!modinv(a, alphLen, &aInverse)) return;
+    int m = slen(alph);
+    if (m <= 1) return;
+
+    int ainv;
+    if (!modinv(a, m, &ainv)) return;
 
     for (int i = 0; enc[i]; ++i) {
-        int abc = indexInAlphabet(alph, (unsigned char)enc[i]);
-        char ch = (abc < 0) ? enc[i] : alph[mod(aInverse * (abc - b), alphLen)];
-
+        int yi = indexInAlphabet(alph, (unsigned char)enc[i]);
+        char ch = (yi < 0) ? enc[i] : alph[mod(ainv * (yi - b), m)];
         fputc(ch, fptr);
     }
 }
@@ -64,64 +66,67 @@ const char* pieceAffineCaesar(const char* alph, const char* encText, const char*
 }
 
 const char* bruteAffineCaesar(const char* alph, const char* encText) {
+    if (!alph || !encText) return "";
+
+    int m = slen(alph);
+    if (m <= 1) return "";
+
     static char fname[128];
     const char* base = "affineBruteCaesar-";
+
     int p = 0;
-    while (base[p] && p < (int)sizeof(fname) - 1) { fname[p] = base[p]; ++p; }
+    while (base[p] && p < (int)sizeof(fname) - 1) {
+        fname[p] = base[p];
+        ++p;
+    }
     fname[p] = '\0';
 
-    if (!append_time(fname, sizeof fname)) {
+    if (!append_time_txt(fname, (int)sizeof fname)) {
         const char* fb = "unknown.txt";
         int i = 0;
-        while (fb[i] && p + i < (int)sizeof(fname) - 1) { fname[p + i] = fb[i]; ++i; }
+        while (fb[i] && p + i < (int)sizeof(fname) - 1) {
+            fname[p + i] = fb[i];
+            ++i;
+        }
         fname[p + i] = '\0';
-    } else {
-        const char* ext = ".txt";
-        int e = 0, L = slen(fname);
-        while (ext[e] && L + e < (int)sizeof(fname) - 1) { fname[L + e] = ext[e]; ++e; }
-        fname[L + e] = '\0';
     }
 
     FILE* fptr = fopen(fname, "wb");
     if (!fptr) return "";
 
-    int alphLen = slen(alph);
-
-    for (int i = 1; i < alphLen; ++i) {
+    for (int a = 1; a < m; ++a) {
         int x, y;
-        if (egcd(i, alphLen, &x, &y) != 1) continue;
-        for (int j = 0; j < alphLen; ++j) {
+        if (egcd(a, m, &x, &y) != 1) continue;
+
+        for (int b = 0; b < m; ++b) {
             char abuf[16], bbuf[16];
             int al, bl;
-            i32_to_str(i, abuf, &al);
-            i32_to_str(j, bbuf, &bl);
+
+            i32_to_str(a, abuf, &al);
+            i32_to_str(b, bbuf, &bl);
 
             fwrite(abuf, 1, al, fptr);
             fwrite(" ", 1, 1, fptr);
             fwrite(bbuf, 1, bl, fptr);
             fwrite(" ", 1, 1, fptr);
 
-            decryptWithKey_affineCaesar(alph, encText, i, j, fptr);
+            decryptWithKey_affineCaesar(alph, encText, a, b, fptr);
             fwrite("\n", 1, 1, fptr);
         }
     }
 
     fclose(fptr);
-    largeWrite(fname);
-
-    return '\0';
+    return fname;
 }
 
-const char* affineCaesarEntry(const char* alph, const char* encText, const char* knownFrag, const char flag) {
-    if (!alph || !encText)
-        return "\0";
+const char* affineCaesarEntry(const char* alph, const char* encText, const char* knownFrag) {
+    if (!alph || !encText) return "";
 
-    if (knownFrag && flag == 0) { 
-        const char* retVal = pieceaffineCaesar(alph, encText, knownFrag);
-        return retVal && retVal[0] != '\0' ? retVal : "";
-
+    if (knownFrag) {
+        const char* r = pieceAffineCaesar(alph, encText, knownFrag);
+        return (r && r[0]) ? r : "";
     } else {
-        const char* retVal = bruteaffineCaesar(alph, encText);
-        return retVal && retVal[0] != '\0' ? retVal : "";
+        const char* r = bruteAffineCaesar(alph, encText);
+        return (r && r[0]) ? r : "";
     }
 }

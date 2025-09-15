@@ -1,7 +1,7 @@
 #define INT_MIN (-2147483647 - 1)
 #define INT_MAX 2147483647
 
-int iPow(int x, int power) {
+static int iPow(int x, int power) {
     if (power < 0) return 0;
     long long r = 1, b = x;
     int e = power;
@@ -21,8 +21,13 @@ int iPow(int x, int power) {
     return (int)r;
 }
 
+static int mod(int a, int m) {
+    int r = a % m;
+    return r < 0 ? r + m : r;
+}
+
 //straight up yoinked from geeksforgeeks
-int gcd(int a, int b) {
+static int gcd(int a, int b) {
     int result = ((a < b) ? a : b);
     while (result > 0) {
         if (a % result == 0 && b % result == 0) {
@@ -49,7 +54,7 @@ static int egcd(int a, int b, int* x, int* y) {
     return g;
 }
 
-int modinv(int a, int m, int* inv) {
+static int modinv(int a, int m, int* inv) {
     int x, y;
     int g = egcd(mod(a, m), m, &x, &y);
     if (g != 1) return 0;

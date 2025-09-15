@@ -21,19 +21,7 @@ typedef struct {
     char brute;
     const char* frag;
     const char* alph;
+
+    const char* encText;
+    const char* out;
 } Arguments;
-
-#include "afineCaesar.h"
-
-void decypher(Arguments* args) {
-    if (!args || !args->decypher) return;
-
-    if (args->affineCaesar) {
-        const char* frag = args->brute ? NULL : args->frag;
-        const char* res = afineCaesarEntry(args->alph, args->encText, frag);
-        args->out = res;
-        return;
-    }
-}
-
-
