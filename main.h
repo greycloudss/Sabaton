@@ -2,7 +2,7 @@
 #include <string.h>
 
 //cyphers
-#include "internals/hashes/affineCaesar.h"
+#include "internals/cyphers/affineCaesar.h"
 
 #define FLAG_COUNT 4
 

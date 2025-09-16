@@ -120,9 +120,15 @@ const char* affineCaesarEntry(const char* alph, const char* encText, const char*
     if (!alph || !encText) return "";
     if (knownFrag) {
         const char* r = pieceAffineCaesar(alph, encText, knownFrag);
+        printf("%s\n", r);
         return (r && r[0]) ? r : "";
     } else {
         const char* r = bruteAffineCaesar(alph, encText);
         return (r && r[0]) ? r : "";
     }
 }
+/*
+ŽODISYRASTIPRESNISUŽKARDĄJEIJISPASAKYTASTINKAMUMETU
+17 4 TIKRASISIŠŠŪKISYRANEIŠŠIFRAVIMASOSUPRATIMASKĄTAIREIŠKIA
+5 8 JEINORIPASIEKTIVIRŠŪNĘTURĖSIPRADĖTIŽINGSNĮNUOAPAČIOS
+*/
