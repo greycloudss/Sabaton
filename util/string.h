@@ -143,3 +143,25 @@ static void print(const char* s) {
     fwrite(s, 1, slen(s), stdout);
     fwrite("\n", 1, 1, stdout);
 }
+
+static int parse_frag(const char* s, int* out, int cap){
+    int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
+    while (s[i]){
+        char c = s[i++];
+        if (c == '-' && !innum){ sign = -1; innum = 1; acc = 0; }
+        else if (c >= '0' && c <= '9'){ acc = acc*10 + (c - '0'); innum = 1; }
+        else if (c == ',' || c == ' ' || c == '\t' || c == '\n' || c == '\r'){
+            if (innum){
+                if (n < cap) out[n++] = sign*acc;
+                sign = 1; acc = 0; innum = 0;
+            }
+        } else {
+            if (innum){
+                if (n < cap) out[n++] = sign*acc;
+                sign = 1; acc = 0; innum = 0;
+            }
+        }
+    }
+    if (innum && n < cap) out[n++] = sign*acc;
+    return n;
+}

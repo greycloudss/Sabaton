@@ -3,6 +3,7 @@
 
 //cyphers
 #include "internals/cyphers/affineCaesar.h"
+#include "internals/cyphers/hill.h"
 
 #define FLAG_COUNT 4
 
@@ -17,7 +18,11 @@ typedef struct {
 
     char decrypt;
     char decypher;
+
+
     char affineCaesar;
+    char hill;
+
     char brute;
     const char* frag;
     const char* alph;

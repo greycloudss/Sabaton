@@ -1,5 +1,6 @@
-#define INT_MIN (-2147483647 - 1)
-#define INT_MAX 2147483647
+#pragma once
+#define __INT_MIN (-2147483647 - 1)
+#define __INT_MAX 2147483647
 
 static int iPow(int x, int power) {
     if (power < 0) return 0;
@@ -8,14 +9,14 @@ static int iPow(int x, int power) {
     while (e) {
         if (e & 1) {
             r *= b;
-            if (r > INT_MAX) return INT_MAX;
-            if (r < INT_MIN) return INT_MIN;
+            if (r > __INT_MAX) return __INT_MAX;
+            if (r < __INT_MIN) return __INT_MIN;
         }
         e >>= 1;
         if (e) {
             b *= b;
-            if (b > INT_MAX) b = (long long)INT_MAX + 1;
-            if (b < INT_MIN) b = (long long)INT_MIN - 1;
+            if (b > __INT_MAX) b = (long long)__INT_MAX + 1;
+            if (b < __INT_MIN) b = (long long)__INT_MIN - 1;
         }
     }
     return (int)r;
@@ -42,9 +43,8 @@ static int gcd(int a, int b) {
 /*
 this is the extended Euclidean algorithm which basically finds a gcd between a and b but also gets two integers
 x and y such that ax + by = gcd(a, b).
-
-
 */
+
 static int egcd(int a, int b, int* x, int* y) {
     if (b == 0) { *x = 1; *y = 0; return a; }
     int x1, y1;
@@ -60,4 +60,31 @@ static int modinv(int a, int m, int* inv) {
     if (g != 1) return 0;
     *inv = mod(x, m);
     return 1;
+}
+
+static int det2_mod(const int k[4], int m){
+    int d = k[0]*k[3] - k[1]*k[2];
+    return mod(d, m);
+}
+
+static int inv2x2mod(const int K[4], int m, int invK[4]) {
+    long a = K[0], b = K[1], c = K[2], d = K[3];
+    long det = (a*d - b*c);
+    int detm = mod((int)det, m);
+
+    int detInv;
+    if (!modinv(detm, m, &detInv)) return 0;
+
+    long A =  d, B = -b, C = -c, D =  a;
+    invK[0] = mod((int)(detInv * A), m);
+    invK[1] = mod((int)(detInv * B), m);
+    invK[2] = mod((int)(detInv * C), m);
+    invK[3] = mod((int)(detInv * D), m);
+    return 1;
+}
+
+
+static void mat2_mul_vec_mod(const int k[4], const int v[2], int m, int out[2]){
+    out[0] = mod(k[0]*v[0] + k[1]*v[1], m);
+    out[1] = mod(k[2]*v[0] + k[3]*v[1], m);
 }

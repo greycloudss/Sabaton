@@ -87,6 +87,14 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 args->affineCaesar = 1;
                 continue;
             }
+
+            if (strcmp(a, "-hill") == 0) {
+                args->hill = 1;
+                continue;
+            }
+
+
+
             if (strcmp(a, "-brute") == 0) {
                 args->brute = 1;
                 continue;
@@ -110,6 +118,13 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
 
 void decypher(Arguments* args) {
     if (!args || !args->decypher) return;
+
+    if (args->hill) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = hillEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
 
     if (args->affineCaesar) {
         const char* frag = args->brute ? NULL : args->frag;
@@ -148,6 +163,7 @@ int main(int argc, const char** argv) {
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, wargc, (const char**)a);
     decypher(&args);
+    if (args.out && args.out[0]) print(args.out);
     for (int i = 0; i < wargc; ++i) free(a[i]);
     free(a);
     LocalFree(wargv);
@@ -156,6 +172,7 @@ int main(int argc, const char** argv) {
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, argc, argv);
     decypher(&args);
+    if (args.out && args.out[0]) print(args.out);
     return 0;
 #endif
 }
