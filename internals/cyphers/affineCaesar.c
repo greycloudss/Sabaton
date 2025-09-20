@@ -126,8 +126,3 @@ const char* affineCaesarEntry(const char* alph, const char* encText, const char*
         return (r && r[0]) ? r : "";
     }
 }
-/*
-ŽODISYRASTIPRESNISUŽKARDĄJEIJISPASAKYTASTINKAMUMETU
-17 4 TIKRASISIŠŠŪKISYRANEIŠŠIFRAVIMASOSUPRATIMASKĄTAIREIŠKIA
-5 8 JEINORIPASIEKTIVIRŠŪNĘTURĖSIPRADĖTIŽINGSNĮNUOAPAČIOS
-*/

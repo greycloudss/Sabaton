@@ -16,6 +16,10 @@ void printHelp() {
     printf("\n");
     printf("-decypher           Enable cipher-decoding mode.\n");
     printf("-affineCaesar       Select the affine Caesar cipher module.\n");
+    printf("-hill               Select the Hill cipher module.\n");
+    printf("-vigenere           Select the Vigenere cipher module.\n");
+    printf("                    Use -frag \"crack:min-max\" to guess key length in [min,max] and decrypt.");
+    printf("                    For autokey Vigenere prefix the fragment with \"auto:\" (e.g. -frag \"auto:VYRAS\").\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -93,6 +97,10 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 continue;
             }
 
+            if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0) {
+                args->vigenere = 1;
+                continue;
+            }
 
 
             if (strcmp(a, "-brute") == 0) {
@@ -118,6 +126,14 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
 
 void decypher(Arguments* args) {
     if (!args || !args->decypher) return;
+
+    if (args->vigenere) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = vigenereEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+
 
     if (args->hill) {
         const char* frag = args->brute ? NULL : args->frag;
