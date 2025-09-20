@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdint.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 
 static int stoi(const char* string) {
 	int sign = (*string=='-') ? -1 : 1;
@@ -116,4 +121,25 @@ static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {
     }
     if (k < cap) out[k] = '\0';
     return k;
+}
+
+static void print(const char* s) {
+#ifdef _WIN32
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD m;
+    if (h != INVALID_HANDLE_VALUE && GetConsoleMode(h, &m)) {
+        int wlen = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+        if (wlen > 0) {
+            WCHAR* w = (WCHAR*)malloc((size_t)wlen * sizeof(WCHAR));
+            if (!w) return;
+            MultiByteToWideChar(CP_UTF8, 0, s, -1, w, wlen);
+            DWORD wr; WriteConsoleW(h, w, (DWORD)(wlen - 1), &wr, NULL);
+            WriteConsoleW(h, L"\r\n", 2, &wr, NULL);
+            free(w);
+            return;
+        }
+    }
+#endif
+    fwrite(s, 1, slen(s), stdout);
+    fwrite("\n", 1, 1, stdout);
 }

@@ -1,5 +1,11 @@
 #include "main.h"
 #include <stdio.h>
+#include "util/string.h"
+#include <locale.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
 
 volatile char killswitch = 0;
 
@@ -114,9 +120,42 @@ void decypher(Arguments* args) {
 }
 
 
-int main(int argv, const char** argc) {
-    Arguments args = { .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
-    parseArgs(&args, argv, argc);
+int main(int argc, const char** argv) {
+    setlocale(LC_ALL, "");
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    int wargc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+    if (!wargv) return 1;
+    char** a = (char**)malloc(sizeof(char*) * wargc);
+    if (!a) { LocalFree(wargv); return 1; }
+    for (int i = 0; i < wargc; ++i) {
+        int need = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+        if (need <= 0) {
+            a[i] = (char*)malloc(1);
+            if (a[i]) a[i][0] = '\0';
+            continue;
+        }
+        a[i] = (char*)malloc((size_t)need);
+        if (!a[i]) {
+            a[i] = (char*)malloc(1);
+            if (a[i]) a[i][0] = '\0';
+            continue;
+        }
+        WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, a[i], need, NULL, NULL);
+    }
+    Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
+    parseArgs(&args, wargc, (const char**)a);
+    decypher(&args);
+    for (int i = 0; i < wargc; ++i) free(a[i]);
+    free(a);
+    LocalFree(wargv);
+    return 0;
+#else
+    Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
+    parseArgs(&args, argc, argv);
     decypher(&args);
     return 0;
+#endif
 }
