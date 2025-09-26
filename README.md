@@ -38,6 +38,7 @@ gcc main.c \
     internals/hashes/xxhash32.c \
     internals/cyphers/hill.c \
     internals/cyphers/vigenere.c \
+    -lm \
     -o sabaton
 ```
 
