@@ -8,6 +8,9 @@
 #endif
 
 
+#define MAX_KEYS 5
+
+
 static int stoi(const char* string) {
 	int sign = (*string=='-') ? -1 : 1;
 	long n = 0;
@@ -164,4 +167,82 @@ static int parse_frag(const char* s, int* out, int cap){
     }
     if (innum && n < cap) out[n++] = sign*acc;
     return n;
+}
+
+static int* parse_frag_array(const char* s, int* out_n){
+    int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
+    while (s[i]){
+        char c = s[i++];
+        if (c == '?'){
+            if (innum){
+                n++;
+                innum = 0;
+                sign = 1;
+                acc = 0;
+            }
+            n++;
+        } else if (c == '-' && !innum){
+            sign = -1;
+            innum = 1;
+            acc = 0;
+        } else if (c >= '0' && c <= '9'){
+            acc = acc*10 + (c - '0');
+            innum = 1;
+        } else {
+            if (innum){
+                n++;
+                innum = 0;
+                sign = 1;
+                acc = 0;
+            }
+        }
+    }
+    if (innum){
+        n++;
+    }
+
+    int* out = (int*)malloc((size_t)n * sizeof(int));
+    if (!out){
+        if (out_n) *out_n = 0;
+        return NULL;
+    }
+    if (out_n){
+        *out_n = n;
+    }
+
+    i = 0;
+    int k = 0;
+    sign = 1;
+    acc = 0;
+    innum = 0;
+    while (s[i] && k < n){
+        char c = s[i++];
+        if (c == '?'){
+            if (innum){
+                out[k++] = sign*acc;
+                innum = 0;
+                sign = 1;
+                acc = 0;
+            }
+            out[k++] = -1;
+        } else if (c == '-' && !innum){
+            sign = -1;
+            innum = 1;
+            acc = 0;
+        } else if (c >= '0' && c <= '9'){
+            acc = acc*10 + (c - '0');
+            innum = 1;
+        } else {
+            if (innum){
+                out[k++] = sign*acc;
+                innum = 0;
+                sign = 1;
+                acc = 0;
+            }
+        }
+    }
+    if (innum && k < n){
+        out[k++] = sign*acc;
+    }
+    return out;
 }
