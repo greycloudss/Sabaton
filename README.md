@@ -23,6 +23,31 @@ WIP — core components exist but the project is actively being refined. Expect 
 
 ---
 
+#For anyone coming from our cryptography course - the supported practice lecture topics:
+
+| Translation (EN)                           | Status | Progress    |
+| ------------------------------------------ | ------ | ----------- |
+| Transposition ciphers, etc.                | ✗      | In progress |
+| Analysis of substitution ciphers           | ✓      | Done        |
+| Vigenère cipher analysis                   | ✓      | Done        |
+| Enigma cipher                              | ✗      | In progress |
+| Feistel cipher                             | ✗      | In progress |
+| Block cipher modes (of operation)          | ✗      | —           |
+| AES variant                                | ✗      | —           |
+| Stream ciphers                             | ✗      | —           |
+| Stream ciphers, statistical tests          | ✗      | —           |
+| Knapsack cryptosystem                      | ✗      | —           |
+| RSA cipher (cryptosystem)                  | ✗      | —           |
+| Rabin and Blum–Goldwasser cryptosystems    | ✗      | —           |
+| ElGamal cryptosystem and digital signature | ✗      | —           |
+| Secret sharing                             | ✗      | —           |
+| Secret sharing schemes                     | ✗      | —           |
+| Elliptic-curve cryptography                | ✗      | —           |
+| Zero-knowledge proofs                      | ✗      | —           |
+
+
+---
+
 ## Quick Build
 
 Adjust paths to match the repo layout. Example compile line used during development:
