@@ -23,7 +23,7 @@ WIP — core components exist but the project is actively being refined. Expect 
 
 ---
 
-#For anyone coming from our cryptography course - the supported practice lecture topics:
+# For anyone coming from our cryptography course - the supported practice lecture topics:
 
 | Translation (EN)                           | Status | Progress    |
 | ------------------------------------------ | ------ | ----------- |
