@@ -6,7 +6,7 @@
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
 #include "internals/cyphers/feistel.h"
-
+#include "internals/cyphers/enigma.h"
 #define FLAG_COUNT 4
 
 extern volatile char killswitch;
@@ -25,6 +25,7 @@ typedef struct {
     char affineCaesar;
     char hill;
     char vigenere;
+    char enigma;
     char feistel;
 
     char brute;

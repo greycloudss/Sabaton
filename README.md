@@ -63,6 +63,7 @@ gcc main.c \
     internals/hashes/xxhash32.c \
     internals/cyphers/hill.c \
     internals/cyphers/vigenere.c \
+    internals/cyphers/enigma.c \
     -lm \
     -o sabaton
 ```
@@ -90,6 +91,12 @@ Example:
 ```bash
 ./sabaton -decypher -hill -alph "AĄBCČDEĘĖFGHIĮYJKLMNOPRSŠTUŲŪVZŽ" -frag "17,6,4,9" "TBKKI HĄŪRH ..."
 ```
+
+```bash
+./sabaton -decypher -enigma -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \ 
+  -frag "R1:5,3,2,0,17,10,8,24,20,11,1,12,9,22,16,6,25,4,18,21,7,13,15,23,19,14|R2:20,3,24,18,8,5,15,4,7,11,0,13,9,22,12,23,10,1,19,21,17,16,2,25,6,14|KEY:3,?" \
+  "KAMMS PESAB ZDXXA VMYPZ ROJGF TMZGT TMNFZ GTQDL XQRPC DQQVR QFUQT TPOY"
+  ```
 
 Notes:
 

@@ -20,6 +20,9 @@ void printHelp() {
     printf("-vigenere           Select the Vigenere cipher module.\n");
     printf("                    Use -frag \"crack:min-max\" to guess key length in [min,max] and decrypt.");
     printf("                    For autokey Vigenere prefix the fragment with \"auto:\" (e.g. -frag \"auto:VYRAS\").\n");
+    printf("-enigma             Select the Enigma cipher module.\n");
+    printf("                    For Enigma, pack rotors, reflector and key into -frag as\n");
+    printf("                    \"R1:<...>|R2:<...>|KEY:<...>\".\n");
     printf("-feistel            Select the Feistel cipher module.\n");
     printf("                    For Feistel, pack function and keys into -frag as \"f=<0..3>;k=[...]\".\n");
     printf("                    Example: -frag \"f=0;k=[108,59,164]\" or just -frag \"[108,59,164]\".\n");
@@ -106,12 +109,15 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 continue;
             }
 
+            if(strcmp(a, "-enigma") == 0){
+                args->enigma = 1;
+                continue;
+            }
+            
             if (strcmp(a, "-feistel") == 0) {
                 args->feistel = 1;
                 continue;
             }
-
-
 
             if (strcmp(a, "-brute") == 0) {
                 args->brute = 1;
@@ -171,6 +177,13 @@ void decypher(Arguments* args) {
     if (args->affineCaesar) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = affineCaesarEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+
+    if(args->enigma){
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = enigmaEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

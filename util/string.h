@@ -6,10 +6,43 @@
 #include <windows.h>
 #include <shellapi.h>
 #endif
-
-
 #define MAX_KEYS 5
 
+
+
+
+//comma seperated values
+static void parseCSV(const char* s, int* out, int* count) {
+    int idx = 0;
+    const char* p = s;
+
+    while (*p) {
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == ',') p++;
+
+        if (*p == '\0') break;
+
+        if (*p == '?') {                
+            out[idx++] = -1;
+            while (*p && *p != ',') p++;
+            continue;
+        }
+
+        char* end;
+        long v = strtol(p, &end, 10);  
+        if (end == p) {                
+            while (*p && *p != ',') p++;
+        } else {
+            out[idx++] = (int)v;
+            p = end;
+        }
+    }
+    *count = idx;
+}
+static void invertVector(const int* v, int* inv, int n) {
+    for (int i = 0; i < n; i++) {
+        inv[v[i]] = i;
+    }
+}
 
 static int stoi(const char* string) {
 	int sign = (*string=='-') ? -1 : 1;
