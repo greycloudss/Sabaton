@@ -30,8 +30,8 @@ WIP — core components exist but the project is actively being refined. Expect 
 | Transposition ciphers, etc.                | ✗      | In progress |
 | Analysis of substitution ciphers           | ✓      | Done        |
 | Vigenère cipher analysis                   | ✓      | Done        |
-| Enigma cipher                              | ✗      | In progress |
-| Feistel cipher                   | ✓      | Done        |
+| Enigma cipher                              | ✓      | Done        |
+| Feistel cipher                             | ✓      | Done        |
 | Block cipher modes (of operation)          | ✗      | —           |
 | AES variant                                | ✗      | —           |
 | Stream ciphers                             | ✗      | —           |
@@ -64,6 +64,7 @@ gcc main.c \
     internals/cyphers/hill.c \
     internals/cyphers/vigenere.c \
     internals/cyphers/enigma.c \
+    internals/cyphers/feistel.c \
     -lm \
     -o sabaton
 ```
