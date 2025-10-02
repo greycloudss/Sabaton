@@ -31,7 +31,7 @@ WIP — core components exist but the project is actively being refined. Expect 
 | Analysis of substitution ciphers           | ✓      | Done        |
 | Vigenère cipher analysis                   | ✓      | Done        |
 | Enigma cipher                              | ✗      | In progress |
-| Feistel cipher                             | ✗      | In progress |
+| Feistel cipher                   | ✓      | Done        |
 | Block cipher modes (of operation)          | ✗      | —           |
 | AES variant                                | ✗      | —           |
 | Stream ciphers                             | ✗      | —           |

@@ -20,6 +20,9 @@ void printHelp() {
     printf("-vigenere           Select the Vigenere cipher module.\n");
     printf("                    Use -frag \"crack:min-max\" to guess key length in [min,max] and decrypt.");
     printf("                    For autokey Vigenere prefix the fragment with \"auto:\" (e.g. -frag \"auto:VYRAS\").\n");
+    printf("-feistel            Select the Feistel cipher module.\n");
+    printf("                    For Feistel, pack function and keys into -frag as \"f=<0..3>;k=[...]\".\n");
+    printf("                    Example: -frag \"f=0;k=[108,59,164]\" or just -frag \"[108,59,164]\".\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -35,6 +38,7 @@ void printHelp() {
     printf("Examples:\n");
     printf("  <prog> -decypher -affineCaesar -alph \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\" -frag \"THE\"\n");
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
+    printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"");
 }
 
 void parseArgs(Arguments* args, const int argv, const char** argc) {
@@ -102,6 +106,12 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 continue;
             }
 
+            if (strcmp(a, "-feistel") == 0) {
+                args->feistel = 1;
+                continue;
+            }
+
+
 
             if (strcmp(a, "-brute") == 0) {
                 args->brute = 1;
@@ -126,6 +136,22 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
 
 void decypher(Arguments* args) {
     if (!args || !args->decypher) return;
+
+    if (args->feistel) {
+        if (args->brute || !args->frag) {
+            const char* res = feistelEntry(args->encText, NULL, 0);
+            args->out = res;
+            return;
+        } else {
+            char flag = 0;
+            char* keys = NULL;
+            feistel_extract(args->frag, &flag, &keys);
+            const char* res = feistelEntry(args->encText, keys, flag);
+            if (keys) free(keys);
+            args->out = res;
+            return;
+        }
+    }
 
     if (args->vigenere) {
         const char* frag = args->brute ? NULL : args->frag;

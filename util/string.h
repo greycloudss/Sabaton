@@ -246,3 +246,37 @@ static int* parse_frag_array(const char* s, int* out_n){
     }
     return out;
 }
+
+static void feistel_extract(const char* frag, char* out_flag, char** out_keys){
+    *out_flag = 0;
+    *out_keys = NULL;
+
+    if (!frag || !*frag) return;
+
+    const char* fpos = strstr(frag, "f=");
+
+    if (fpos) *out_flag = (char)stoi(fpos + 2);
+
+    const char* lb = strchr(frag, '[');
+    const char* rb = NULL;
+
+    if (lb) {
+        const char* p = lb;
+        while (*p && *p != ']') ++p;
+        if (*p == ']') rb = p;
+    }
+
+    if (lb && rb && rb > lb) {
+        int len = (int)(rb - lb + 1);
+        char* buf = (char*)malloc((size_t)len + 1);
+        for (int i = 0; i < len; ++i) buf[i] = lb[i];
+        buf[len] = '\0';
+        *out_keys = buf;
+    } else {
+        int len = slen(frag);
+        char* buf = (char*)malloc((size_t)len + 1);
+        for (int i = 0; i < len; ++i) buf[i] = frag[i];
+        buf[len] = '\0';
+        *out_keys = buf;
+    }
+}

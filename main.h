@@ -5,6 +5,7 @@
 #include "internals/cyphers/affineCaesar.h"
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
+#include "internals/cyphers/feistel.h"
 
 #define FLAG_COUNT 4
 
@@ -24,6 +25,7 @@ typedef struct {
     char affineCaesar;
     char hill;
     char vigenere;
+    char feistel;
 
     char brute;
     const char* frag;
