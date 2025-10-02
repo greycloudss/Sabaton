@@ -6,6 +6,7 @@
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
 #include "internals/cyphers/feistel.h"
+#include "internals/lithuanian.h"
 #include "internals/cyphers/enigma.h"
 #define FLAG_COUNT 4
 
@@ -27,6 +28,8 @@ typedef struct {
     char vigenere;
     char enigma;
     char feistel;
+
+    char enhancedBrute;
 
     char brute;
     const char* frag;

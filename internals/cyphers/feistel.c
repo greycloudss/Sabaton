@@ -1,4 +1,7 @@
 #include "feistel.h"
+#include "../lithuanian.h"
+
+#define MAX_FUNCS 5
 
 static char* g_first_line = NULL;
 static size_t g_first_len = 0;
@@ -162,7 +165,7 @@ const char* partialFeistel(const char* encText, int* frag, size_t n, char flag){
     }
 
     fclose(fptr);
-    return fname;
+    return recognEntry(fname);
 }
 
 const char* bruteFeistel(const char* encText, int* frag, char flag){
@@ -172,7 +175,7 @@ const char* bruteFeistel(const char* encText, int* frag, char flag){
             keys[i] = frag[i];
         }
     }
-    return partialFeistel(encText, keys, 3, flag);
+    return recognEntry(partialFeistel(encText, keys, 3, flag));
 }
 
 const char* feistelEntry(const char* encText, const char* frag, char flag){

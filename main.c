@@ -31,6 +31,7 @@ void printHelp() {
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
     printf("                    directly and decrypt once; fastest if the snippet is correct.\n");
     printf("-brute              Try all valid keys (a coprime with m; b in [0..m-1]) and output each\n");
+    printf("-enhancedBrute      ONLY FOR LITHUANIAN; Try all valid keysbut also sort by phonetic coherency \n");
     printf("                    candidate plaintext with its keys.\n");
     printf("\n");
     printf("Notes:\n");
@@ -49,6 +50,8 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
     args->decrypt = 0;
     args->decypher = 0;
     args->affineCaesar = 0;
+    args->feistel = 0;
+    args->enhancedBrute = 0;
     args->brute = 0;
     args->frag = NULL;
     args->alph = NULL;
@@ -73,6 +76,14 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
             args->decypher = 1;
             continue;
         }
+
+
+        if (strcmp(a, "-enhancedBrute") == 0) {
+            args->brute = 1;
+            args->enhancedBrute = 1;
+            continue;
+        }
+
 
         if (args->decrypt) {
             if (strcmp(a, "-w") == 0) {
@@ -218,7 +229,10 @@ int main(int argc, const char** argv) {
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, wargc, (const char**)a);
     decypher(&args);
-    if (args.out && args.out[0]) print(args.out);
+    if (args.out && args.out[0]) {
+        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel) recognEntry(args.out);
+        print(args.out);
+    }
     for (int i = 0; i < wargc; ++i) free(a[i]);
     free(a);
     LocalFree(wargv);
@@ -227,7 +241,10 @@ int main(int argc, const char** argv) {
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, argc, argv);
     decypher(&args);
-    if (args.out && args.out[0]) print(args.out);
+    if (args.out && args.out[0]){
+        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel) recognEntry(args.out);
+        print(args.out);
+    }
     return 0;
 #endif
 }
