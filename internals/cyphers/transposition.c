@@ -1,6 +1,6 @@
 #include "transposition.h"
 
-#define MAX_PERM_COLS 9
+#define MAX_PERM_COLS 8
 
 static void swap_int(int* a, int* b) { int t = *a; *a = *b; *b = t; }
 
@@ -198,3 +198,4 @@ const char* transpositionEntry(const char* alph, const char* encText, const char
     free(res);
     return static_out;
 }
+
