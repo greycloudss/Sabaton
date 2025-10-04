@@ -58,6 +58,8 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
     args->wordlist = NULL;
     args->encText = NULL;
     args->out = NULL;
+    args->skytales = 0;
+    args->skytales_k = -1;
 
     for (int i = 1; i < argv; ++i) {
         const char* a = argc[i];
@@ -114,6 +116,17 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 args->hill = 1;
                 continue;
             }
+            if (strcmp(a, "-skytales") == 0) {
+                args->skytales = 1;
+                continue;
+            }
+            if (args->skytales && args->frag && args->skytales_k == -1) {
+                char* endptr = NULL;
+                long val = strtol(args->frag, &endptr, 10);
+                if (endptr != args->frag && *endptr == '\0') {
+                    args->skytales_k = (int)val;
+                }
+            }
 
             if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0) {
                 args->vigenere = 1;
@@ -168,6 +181,21 @@ void decypher(Arguments* args) {
             args->out = res;
             return;
         }
+    }
+
+    if (args->skytales) {
+    if (args->skytales_k != -1) {
+        char kbuf[32];
+        snprintf(kbuf, sizeof(kbuf), "%d", args->skytales_k);
+        args->out = skytalesEntry(args->alph, args->encText, kbuf);
+        return;
+    }
+        if (args->brute) {
+            args->out = skytalesEntry(args->alph, args->encText, "brute");
+            return;
+        }
+        args->out = skytalesEntry(args->alph, args->encText, args->frag);
+        return;
     }
 
     if (args->vigenere) {
@@ -247,4 +275,5 @@ int main(int argc, const char** argv) {
     }
     return 0;
 #endif
+
 }
