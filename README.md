@@ -27,7 +27,7 @@ WIP — core components exist but the project is actively being refined. Expect 
 
 | Translation (EN)                           | Status | Progress    |
 | ------------------------------------------ | ------ | ----------- |
-| Transposition ciphers, etc.                | ✗      | In progress |
+| Transposition ciphers, etc.                | ✓      | Done        |
 | Analysis of substitution ciphers           | ✓      | Done        |
 | Vigenère cipher analysis                   | ✓      | Done        |
 | Enigma cipher                              | ✓      | Done        |
