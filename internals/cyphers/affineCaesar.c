@@ -81,7 +81,7 @@ const char* bruteAffineCaesar(const char* alph, const char* encText) {
     if (m <= 1) return "";
 
     static char fname[128];
-    const char* base = "affineBruteCaesar-";
+    const char* base = "affineCaesarBrute-";
     int p = 0;
     while (base[p] && p < (int)sizeof(fname) - 1) { fname[p] = base[p]; ++p; }
     fname[p] = '\0';

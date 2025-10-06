@@ -10,6 +10,22 @@ typedef struct {
 	int regionSize;
 } Wordlist;
 
+size_t remove_spaces_tabs(char *s, size_t n) {
+    size_t i = 0;
+    while (i < n) {
+        if (s[i] == ' ' || s[i] == '\t') {
+            size_t j = i + 1;
+            while (j < n && (s[j] == ' ' || s[j] == '\t')) j++;
+            if (j >= n) return i;
+            memmove(s + i, s + j, n - j);
+            n -= (j - i);
+        } else {
+            i++;
+        }
+    }
+    return n;
+}
+
 int getCount(Wordlist wlist) {
 	if (!wlist.startPtr || !wlist.endPtr) return -1; 
 	int count = 0;

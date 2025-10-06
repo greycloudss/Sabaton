@@ -8,17 +8,31 @@
 #endif
 
 volatile char killswitch = 0;
-
+void printASCII() {
+    //cuz why not be cool and hip like the youngins
+    printf("  ██████  ▄▄▄       ▄▄▄▄    ▄▄▄     ▄▄▄█████▓ ▒█████   ███▄    █ \n");
+    printf("▒██    ▒ ▒████▄    ▓█████▄ ▒████▄   ▓  ██▒ ▓▒▒██▒  ██▒ ██ ▀█   █ \n");
+    printf("░ ▓██▄   ▒██  ▀█▄  ▒██▒ ▄██▒██  ▀█▄ ▒ ▓██░ ▒░▒██░  ██▒▓██  ▀█ ██▒\n");
+    printf("  ▒   ██▒░██▄▄▄▄██ ▒██░█▀  ░██▄▄▄▄██░ ▓██▓ ░ ▒██   ██░▓██▒  ▐▌██▒\n");
+    printf("▒██████▒▒ ▓█   ▓██▒░▓█  ▀█▓ ▓█   ▓██▒ ▒██▒ ░ ░ ████▓▒░▒██░   ▓██░\n");
+    printf("▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░▒▓███▀▒ ▒▒   ▓▒█░ ▒ ░░   ░ ▒░▒░▒░ ░ ▒░   ▒ ▒ \n");
+    printf("░ ░▒  ░ ░  ▒   ▒▒ ░▒░▒   ░   ▒   ▒▒ ░   ░      ░ ▒ ▒░ ░ ░░   ░ ▒░\n");
+    printf("░  ░  ░    ░   ▒    ░    ░   ░   ▒    ░      ░ ░ ░ ▒     ░   ░ ░ \n");
+    printf("      ░        ░  ░ ░            ░  ░            ░ ░           ░ \n");
+    printf("                         ░                                       \n\n");
+}
 
 void printHelp() {
+    printASCII();
     printf("Usage:\n");
     printf("  <prog> -decypher -affineCaesar -alph <alphabet> [-frag <fragment> | -brute]\n");
     printf("\n");
     printf("-decypher           Enable cipher-decoding mode.\n");
-    printf("-affineCaesar       Select the affine Caesar cipher module.\n");
+    printf("-scytale            Select the Scytale module.\n");
+    printf("-affineCaesar       Select the Affine Caesar cipher module.\n");
     printf("-hill               Select the Hill cipher module.\n");
     printf("-vigenere           Select the Vigenere cipher module.\n");
-    printf("                    Use -frag \"crack:min-max\" to guess key length in [min,max] and decrypt.");
+    printf("                    Use -frag \"crack:min-max\" to guess key length in [min,max] and decrypt.\n");
     printf("                    For autokey Vigenere prefix the fragment with \"auto:\" (e.g. -frag \"auto:VYRAS\").\n");
     printf("-enigma             Select the Enigma cipher module.\n");
     printf("                    For Enigma, pack rotors, reflector and key into -frag as\n");
@@ -31,7 +45,7 @@ void printHelp() {
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
     printf("                    directly and decrypt once; fastest if the snippet is correct.\n");
     printf("-brute              Try all valid keys (a coprime with m; b in [0..m-1]) and output each\n");
-    printf("-enhancedBrute      ONLY FOR LITHUANIAN; Try all valid keysbut also sort by phonetic coherency \n");
+    printf("-enhancedBrute      ONLY FOR LITHUANIAN; Try all valid keys but also sort by phonetic coherency \n");
     printf("                    candidate plaintext with its keys.\n");
     printf("\n");
     printf("Notes:\n");
@@ -42,7 +56,7 @@ void printHelp() {
     printf("Examples:\n");
     printf("  <prog> -decypher -affineCaesar -alph \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\" -frag \"THE\"\n");
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
-    printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"");
+    printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
 }
 
 void parseArgs(Arguments* args, const int argv, const char** argc) {
@@ -58,8 +72,13 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
     args->wordlist = NULL;
     args->encText = NULL;
     args->out = NULL;
-    args->skytales = 0;
-    args->skytales_k = -1;
+
+    args->scytale = 0;
+    
+    args->enigma = 0;
+
+
+    args->banner = 0;
 
     for (int i = 1; i < argv; ++i) {
         const char* a = argc[i];
@@ -116,16 +135,10 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 args->hill = 1;
                 continue;
             }
-            if (strcmp(a, "-skytales") == 0) {
-                args->skytales = 1;
+
+            if (strcmp(a, "-scytale") == 0) {
+                args->scytale = 1;
                 continue;
-            }
-            if (args->skytales && args->frag && args->skytales_k == -1) {
-                char* endptr = NULL;
-                long val = strtol(args->frag, &endptr, 10);
-                if (endptr != args->frag && *endptr == '\0') {
-                    args->skytales_k = (int)val;
-                }
             }
 
             if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0) {
@@ -157,6 +170,11 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
             }
         }
 
+        if (strcmp(a, "-banner") == 0) {
+            args->banner = 1;
+            continue;
+        }
+
         if (a[0] != '-' && !args->encText) {
             args->encText = a;
             continue;
@@ -166,6 +184,8 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
 
 void decypher(Arguments* args) {
     if (!args || !args->decypher) return;
+
+    if (args->banner) printASCII();
 
     if (args->feistel) {
         if (args->brute || !args->frag) {
@@ -183,18 +203,10 @@ void decypher(Arguments* args) {
         }
     }
 
-    if (args->skytales) {
-    if (args->skytales_k != -1) {
-        char kbuf[32];
-        snprintf(kbuf, sizeof(kbuf), "%d", args->skytales_k);
-        args->out = skytalesEntry(args->alph, args->encText, kbuf);
-        return;
-    }
-        if (args->brute) {
-            args->out = skytalesEntry(args->alph, args->encText, "brute");
-            return;
-        }
-        args->out = skytalesEntry(args->alph, args->encText, args->frag);
+    if (args->scytale) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = scytaleEntry(args->alph, args->encText, frag);
+        args->out = res;
         return;
     }
 

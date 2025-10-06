@@ -9,4 +9,4 @@
 #include "../../util/number.h"
 #include "../../util/misc.h"
 
-const char* skytalesEntry(const char* alph, const char* encText, const char* frag);
+const char* scytaleEntry(const char* alph, const char* encText, const char* frag);

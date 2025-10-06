@@ -1,4 +1,4 @@
-#include "skytales.h"
+#include "scytale.h"
 
 static char* decryptBrute(const char* encrypted_text, int rows, int k) {
     if (!encrypted_text || rows <= 0) return NULL;
@@ -65,9 +65,9 @@ static const char* decryptEntry(const char* encrypted_text, int num) {
     return output;
 }
 
-const char* skytalesEntry(const char* alph, const char* encText, const char* frag) {
+const char* scytaleEntry(const char* alph, const char* encText, const char* frag) {
     (void)alph;
-    if (!encText) return strdup("[no input]");
+    if (!encText) return strdup("no input");
 
     if (frag && frag[0]) {
         char* endptr = NULL;
@@ -79,11 +79,11 @@ const char* skytalesEntry(const char* alph, const char* encText, const char* fra
 
     time_t t = time(NULL);
     char fname[128];
-    if (t != (time_t)-1) snprintf(fname, sizeof(fname), "skytales_%lld.txt", (long long)t);
-    else snprintf(fname, sizeof(fname), "skytales_out.txt");
+    if (t != (time_t)-1) snprintf(fname, sizeof(fname), "scytaleBrute_%lld.txt", (long long)t);
+    else snprintf(fname, sizeof(fname), "scytaleBrute_unknown.txt");
 
     FILE* f = fopen(fname, "w");
-    if (!f) return strdup("[error opening output file]");
+    if (!f) return strdup("error opening output file");
 
     for (int k = 1; k < 30; ++k) {
         char* cand = decryptBrute(encText, k, k);
