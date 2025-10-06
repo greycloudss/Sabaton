@@ -2,3 +2,5 @@
 *.exe
 *.out
 *.code-workspace
+.vscode
+*.json
