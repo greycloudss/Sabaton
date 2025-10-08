@@ -155,7 +155,10 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 args->feistel = 1;
                 continue;
             }
-
+            if (strcmp(a, "-transposition") == 0) {
+                args->transposition = 1;
+                continue;
+            }
             if (strcmp(a, "-brute") == 0) {
                 args->brute = 1;
                 continue;
@@ -209,6 +212,13 @@ void decypher(Arguments* args) {
         args->out = res;
         return;
     }
+    if (args->transposition) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = transpositionEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+
 
     if (args->vigenere) {
         const char* frag = args->brute ? NULL : args->frag;

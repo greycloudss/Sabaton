@@ -10,6 +10,7 @@
 #include "internals/cyphers/enigma.h"
 
 #include "internals/cyphers/scytale.h"
+#include "internals/cyphers/transposition.h"
 
 #include "internals/lithuanian.h"
 
@@ -27,6 +28,7 @@ typedef struct {
     char decrypt;
     char decypher;
 
+    char transposition;
     char scytale;
 
     char affineCaesar;
