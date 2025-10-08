@@ -29,6 +29,7 @@ void printHelp() {
     printf("\n");
     printf("-decypher           Enable cipher-decoding mode.\n");
     printf("-scytale            Select the Scytale module.\n");
+    printf("-transposition      Select the Transposition module.\n");
     printf("-affineCaesar       Select the Affine Caesar cipher module.\n");
     printf("-hill               Select the Hill cipher module.\n");
     printf("-vigenere           Select the Vigenere cipher module.\n");
