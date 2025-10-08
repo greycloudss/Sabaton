@@ -268,6 +268,8 @@ int main(int argc, const char** argv) {
     }
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, wargc, (const char**)a);
+    //Default alphabet
+    if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     decypher(&args);
     if (args.out && args.out[0]) {
         if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel) recognEntry(args.out);
