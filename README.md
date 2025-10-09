@@ -29,13 +29,13 @@ WIP — core components exist but the project is actively being refined. Expect 
 | ------------------------------------------ | ------ | ----------- |
 | Scytale cipher                             | ✓      | Done        |
 | Transposition ciphers                      | ✓      | Done        |
-| Fleissner grille cipher                    | ✗      | -           |
-| Delastelle ciphers                         | ✗      | -           |
+| Fleissner grille cipher                    | ✗      | In progress |
+| Delastelle ciphers                         | ✗      | In progress |
 | Analysis of substitution ciphers           | ✓      | Done        |
 | Vigenère cipher analysis                   | ✓      | Done        |
 | Enigma cipher                              | ✓      | Done        |
 | Feistel cipher                             | ✓      | Done        |
-| Block cipher modes (of operation)          | ✗      | —           |
+| Block cipher modes (of operation)          | ✗      | In progress |
 | AES variant                                | ✗      | —           |
 | Stream ciphers                             | ✗      | —           |
 | Stream ciphers, statistical tests          | ✗      | —           |
