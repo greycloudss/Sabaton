@@ -1,20 +1,26 @@
 #include "block.h"
-
 #include "../lithuanian.h"
 
-#include <stdint.h>
 
-#include <stdlib.h>
-
-#include <string.h>
-
-#include <stdio.h>
+static unsigned char g_fflag = 2;
 
 static inline uint8_t Ffunc(uint8_t r, uint8_t k) {
-    return (uint8_t)(((r | k) ^ (((k >> 4) & r))) & 0xFF);
+    switch (g_fflag) {
+    case 0:
+        return (uint8_t)(((r | k) ^ (((r >> 4) &k))) &0xFF);
+    case 1:
+        return (uint8_t)(((r ^ k) &(((k >> 4) | r))) &0xFF);
+    case 2:
+        return (uint8_t)(((r | k) ^ (((k >> 4) &r))) &0xFF);
+    case 3:
+        return (uint8_t)(((r ^ k) &(((r >> 4) | k))) &0xFF);
+    default:
+        return (uint8_t)(((r | k) ^ (((k >> 4) &r))) &0xFF);
+    }
 }
 
-static inline void enc_block_3(uint8_t inL, uint8_t inR, const int* keys, uint8_t* outL, uint8_t* outR) {
+static inline void enc_block_3(uint8_t inL, uint8_t inR,
+    const int* keys, uint8_t* outL, uint8_t* outR) {
     uint8_t L = inL, R = inR;
     for (int i = 0; i < 3; i++) {
         uint8_t nL = R;
@@ -25,21 +31,25 @@ static inline void enc_block_3(uint8_t inL, uint8_t inR, const int* keys, uint8_
     uint8_t t = L;
     L = R;
     R = t;
-  * outL = L;* outR = R;
+   *outL = L;
+   *outR = R;
 }
 
-static inline void dec_block_3(uint8_t inL, uint8_t inR, const int* keys, uint8_t* outL, uint8_t* outR) {
+static inline void dec_block_3(uint8_t inL, uint8_t inR,
+    const int* keys,
+        uint8_t* outL, uint8_t* outR) {
     uint8_t L = inL, R = inR;
-    uint8_t t = L;
-    L = R;
-    R = t;
+    {
+        uint8_t t = L;
+        L = R;
+        R = t;
+    }
     for (int i = 2; i >= 0; i--) {
-        uint8_t nL = (uint8_t)(R ^ Ffunc(L, (uint8_t) keys[i]));
-        uint8_t nR = L;
+        uint8_t nL = (uint8_t)(R ^ Ffunc(L, (uint8_t) keys[i])), nR = L;
         L = nL;
         R = nR;
     }
-  * outL = L;* outR = R;
+   * outL = L;* outR = R;
 }
 
 static uint8_t* read_cipher(const char* encText, int* bigN) {
@@ -63,115 +73,141 @@ static uint8_t* read_cipher(const char* encText, int* bigN) {
     return c;
 }
 
-static void ascii_line(FILE* f, const uint8_t* buf, size_t len) {
+static void ascii_line(FILE* f,
+    const uint8_t* buf, size_t len) {
     if (!f || !buf || !len) return;
+    uint8_t* tmp = (uint8_t* ) malloc(len);
+    if (!tmp) return;
+    size_t j = 0;
+    int sp = 1;
     for (size_t i = 0; i < len; i++) {
         uint8_t v = buf[i];
-        if (v < 32 || v == 127) v = ' ';
-        fputc(v, f);
+        if (v >= 'a' && v <= 'z') v = (uint8_t)(v - 32);
+        if ((v >= 'A' && v <= 'Z') || v == ' ') {
+            if (v == ' ') {
+                if (!sp) {
+                    tmp[j++] = ' ';
+                    sp = 1;
+                }
+            } else {
+                tmp[j++] = v;
+                sp = 0;
+            }
+        } else {
+            if (!sp) {
+                tmp[j++] = ' ';
+                sp = 1;
+            }
+        }
     }
+    while (j > 0 && tmp[j - 1] == ' ') j--;
+    if (j) fwrite(tmp, 1, j, f);
     fputc('\n', f);
+    free(tmp);
 }
 
-static uint8_t* do_ecb(const uint8_t* c, int bigN, const int* keys, size_t* out_len) {
-    if (!c || bigN <= 0 || (bigN & 1)) return NULL;
+static uint8_t* do_ecb(const uint8_t* c, int bigN,
+    const int* keys, size_t* out_len) {
+    if (!c || bigN <= 0 || (bigN &1)) return NULL;
     uint8_t* p = (uint8_t* ) malloc((size_t) bigN);
     if (!p) return NULL;
     size_t pos = 0;
     for (int i = 0; i < bigN; i += 2) {
         uint8_t L, R;
-        dec_block_3(c[i], c[i + 1], keys, & L, & R);
+        dec_block_3(c[i], c[i + 1], keys, &L, &R);
         p[pos++] = L;
         p[pos++] = R;
     }
-  * out_len = pos;
+   * out_len = pos;
     return p;
 }
 
-static uint8_t* do_cbc_iv(const uint8_t* c, int bigN, const int* keys, uint8_t ivL, uint8_t ivR, size_t* out_len) {
-    if (!c || bigN <= 0 || (bigN & 1)) return NULL;
-    uint8_t* p = (uint8_t* ) malloc((size_t) bigN);
+static uint8_t* do_cbc_from_stream(const uint8_t* c, int bigN,
+    const int* keys, size_t* out_len) {
+    if (!c || bigN <= 3 || (bigN &1)) return NULL;
+    uint8_t ivL = c[0], ivR = c[1], prevL = ivL, prevR = ivR;
+    uint8_t* p = (uint8_t* ) malloc((size_t)(bigN - 2));
     if (!p) return NULL;
     size_t pos = 0;
-    uint8_t prevL = ivL, prevR = ivR;
-    for (int i = 0; i < bigN; i += 2) {
+    for (int i = 2; i < bigN; i += 2) {
         uint8_t dL, dR;
-        dec_block_3(c[i], c[i + 1], keys, & dL, & dR);
-        uint8_t PL = (uint8_t)(dL ^ prevL), PR = (uint8_t)(dR ^ prevR);
-        p[pos++] = PL;
-        p[pos++] = PR;
+        dec_block_3(c[i], c[i + 1], keys, &dL, &dR);
+        p[pos++] = (uint8_t)(dL ^ prevL);
+        p[pos++] = (uint8_t)(dR ^ prevR);
         prevL = c[i];
         prevR = c[i + 1];
     }
-  * out_len = pos;
+   * out_len = pos;
     return p;
 }
 
-static uint8_t* do_cfb_iv(const uint8_t* c, int bigN, const int* keys, uint8_t ivL, uint8_t ivR, size_t* out_len) {
-    if (!c || bigN <= 0 || (bigN & 1)) return NULL;
-    uint8_t* p = (uint8_t* ) malloc((size_t) bigN);
+static uint8_t* do_cfb_from_stream(const uint8_t* c, int bigN,
+    const int* keys, size_t* out_len) {
+    if (!c || bigN <= 3 || (bigN &1)) return NULL;
+    uint8_t sL = c[0], sR = c[1];
+    uint8_t* p = (uint8_t* ) malloc((size_t)(bigN - 2));
     if (!p) return NULL;
     size_t pos = 0;
-    uint8_t sL = ivL, sR = ivR;
-    for (int i = 0; i < bigN; i += 2) {
+    for (int i = 2; i < bigN; i += 2) {
         uint8_t keL, keR;
-        enc_block_3(sL, sR, keys, & keL, & keR);
-        uint8_t PL = (uint8_t)(c[i] ^ keL), PR = (uint8_t)(c[i + 1] ^ keR);
-        p[pos++] = PL;
-        p[pos++] = PR;
+        enc_block_3(sL, sR, keys, &keL, &keR);
+        p[pos++] = (uint8_t)(c[i] ^ keL);
+        p[pos++] = (uint8_t)(c[i + 1] ^ keR);
         sL = c[i];
         sR = c[i + 1];
     }
-  * out_len = pos;
+   * out_len = pos;
     return p;
 }
 
-static uint8_t* do_crt(const uint8_t* c, int bigN, const int* keys, size_t* out_len) {
-    if (!c || bigN <= 0 || (bigN & 1)) return NULL;
+static uint8_t* do_crt(const uint8_t* c, int bigN,
+    const int* keys, size_t* out_len) {
+    if (!c || bigN <= 0 || (bigN &1)) return NULL;
     uint8_t* p = (uint8_t* ) malloc((size_t) bigN);
     if (!p) return NULL;
     size_t pos = 0;
     for (int i = 0; i < bigN; i += 2) {
-        uint8_t a = Ffunc((uint8_t)(i / 2), (uint8_t) keys[0]);
-        uint8_t keL, keR;
-        enc_block_3(a, a, keys, & keL, & keR);
-        uint8_t PL = (uint8_t)(c[i] ^ keL), PR = (uint8_t)(c[i + 1] ^ keR);
-        p[pos++] = PL;
-        p[pos++] = PR;
+        uint8_t a = (uint8_t) Ffunc((uint8_t)(i / 2), (uint8_t) keys[0]), keL, keR;
+        enc_block_3(a, a, keys, &keL, &keR);
+        p[pos++] = (uint8_t)(c[i] ^ keL);
+        p[pos++] = (uint8_t)(c[i + 1] ^ keR);
     }
-  * out_len = pos;
+   * out_len = pos;
     return p;
 }
 
-static void write_all_modes(FILE* fptr, const uint8_t* c, int bigN, const int* keys) {
-    size_t out_len = 0;
+static void write_all_modes(FILE* fptr,
+    const uint8_t* c, int bigN,
+        const int* keys) {
+    size_t n = 0;
     uint8_t* a = NULL;
-    a = do_ecb(c, bigN, keys, & out_len);
+    a = do_ecb(c, bigN, keys, &n);
     if (a) {
-        ascii_line(fptr, a, out_len);
+        ascii_line(fptr, a, n);
         free(a);
     }
-    a = do_cbc_iv(c, bigN, keys, 164, 96, & out_len);
+    a = do_cbc_from_stream(c, bigN, keys, &n);
     if (a) {
-        ascii_line(fptr, a, out_len);
+        ascii_line(fptr, a, n);
         free(a);
     }
-    a = do_cfb_iv(c, bigN, keys, 164, 96, & out_len);
+    a = do_cfb_from_stream(c, bigN, keys, &n);
     if (a) {
-        ascii_line(fptr, a, out_len);
+        ascii_line(fptr, a, n);
         free(a);
     }
-    a = do_crt(c, bigN, keys, & out_len);
+    a = do_crt(c, bigN, keys, &n);
     if (a) {
-        ascii_line(fptr, a, out_len);
+        ascii_line(fptr, a, n);
         free(a);
     }
 }
 
 static
-const char* run_once(const char* encText, const int* keys, size_t nkeys) {
+const char* run_once(const char* encText,
+    const int* keys, size_t nkeys) {
     int N = 0;
-    uint8_t* c = read_cipher(encText, & N);
+    uint8_t* c = read_cipher(encText, &N);
     if (!c) return "";
     static char fname[128];
     const char* base = "block-";
@@ -217,15 +253,13 @@ static void rec_gen_keys(const char* encText, int* keys, size_t nkeys, size_t id
     } else rec_gen_keys(encText, keys, nkeys, idx + 1);
 }
 
-const char* blockEntry(const char* encText, const char* frag, char flag) {
+const char* blockEntry(const char* encText,
+    const char* frag, char flag) {
+    g_fflag = (unsigned char) flag;
     int n = 0;
-    int* keys = parse_frag_array(frag, & n);
+    int* keys = parse_frag_array(frag, &n);
     if (!keys || n <= 0) {
-        int defk[3] = {
-            217,
-            108,
-            80
-        };
+        int defk[3] = { 217, 108, 80};
         return run_once(encText, defk, 3);
     }
     int has_missing = 0;

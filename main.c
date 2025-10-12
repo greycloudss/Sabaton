@@ -2,25 +2,49 @@
 #include <stdio.h>
 #include "util/string.h"
 #include <locale.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <shellapi.h>
-#endif
+
 
 volatile char killswitch = 0;
-void printASCII() {
-    //cuz why not be cool and hip like the youngins
-    printf("  ██████  ▄▄▄       ▄▄▄▄    ▄▄▄     ▄▄▄█████▓ ▒█████   ███▄    █ \n");
-    printf("▒██    ▒ ▒████▄    ▓█████▄ ▒████▄   ▓  ██▒ ▓▒▒██▒  ██▒ ██ ▀█   █ \n");
-    printf("░ ▓██▄   ▒██  ▀█▄  ▒██▒ ▄██▒██  ▀█▄ ▒ ▓██░ ▒░▒██░  ██▒▓██  ▀█ ██▒\n");
-    printf("  ▒   ██▒░██▄▄▄▄██ ▒██░█▀  ░██▄▄▄▄██░ ▓██▓ ░ ▒██   ██░▓██▒  ▐▌██▒\n");
-    printf("▒██████▒▒ ▓█   ▓██▒░▓█  ▀█▓ ▓█   ▓██▒ ▒██▒ ░ ░ ████▓▒░▒██░   ▓██░\n");
-    printf("▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░▒▓███▀▒ ▒▒   ▓▒█░ ▒ ░░   ░ ▒░▒░▒░ ░ ▒░   ▒ ▒ \n");
-    printf("░ ░▒  ░ ░  ▒   ▒▒ ░▒░▒   ░   ▒   ▒▒ ░   ░      ░ ▒ ▒░ ░ ░░   ░ ▒░\n");
-    printf("░  ░  ░    ░   ▒    ░    ░   ░   ▒    ░      ░ ░ ░ ▒     ░   ░ ░ \n");
-    printf("      ░        ░  ░ ░            ░  ░            ░ ░           ░ \n");
-    printf("                         ░                                       \n\n");
-}
+
+#ifdef _WIN32
+    #include <windows.h>
+    #include <shellapi.h>
+    #include <wchar.h>
+    void printASCII(void) {
+        HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (h == INVALID_HANDLE_VALUE) return;
+
+        static const wchar_t* art =
+            L"  \u2588\u2588\u2588\u2588\u2588\u2588  \u256d\u2550\u2550\u2550       \u256d\u256c\u256c\u2550    \u256d\u2550\u2550     \u256d\u2550\u2550\u2588\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2588  \u2588\u2588\u2588\u2584    \u2588 \n"
+            L"\u255a\u2588\u2588    \u2554 \u2502\u2588\u2588\u2588\u2588\u2564    \u2566\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2584   \u2566  \u2588\u2588\u255f \u2552\u2502\u2502\u2588\u2588\u2500\u2500\u2588\u2588\u255f \u2588\u2588\u2502\u2009\u2518\u2588\u2588   \u2588 \n"
+            L"\u2591 \u2592\u2588\u2588\u255b   \u2502\u2588\u2588  \u2570\u2588\u2584  \u2502\u2588\u2588\u2502 \u2570\u256e\u256e\u2502\u2588\u2588  \u2570\u2588\u2584 \u2502 \u2562\u2588\u2588\u2502 \u2570\u2502\u2502\u2588\u2588  \u2588\u2588\u255f\u2502\u2588\u2588  \u2570\u2588 \u2588\u2588\u255f\n"
+            L"  \u2502   \u2588\u2588\u2554\u2502\u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b \u2502\u2588\u2588\u2579\u2550  \u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b\u2502 \u2562\u2588\u2588\u250f \u2502 \u2588\u2588   \u2588\u2588\u2591\u2502\u2588\u2588\u255f  \u2502\u2571\u2588\u2588\u255f\n"
+            L"\u255a\u2588\u2588\u2588\u2588\u2588\u2554\u2502\u2502 \u2566   \u2562\u2588\u2588\u255f\u2591\u2502\u2591\u2588\u2588  \u2570\u2588\u2588\u2502 \u2502\u2588\u2588\u255f \u2591 \u2591 \u2588\u2588\u2588\u2588\u2588\u2552\u2502\u2588\u2588\u2591   \u2562\u2588\u2588\u2591\n"
+            L"\u255a \u2502\u2570\u2502 \u2502 \u2502\u2502   \u2562\u2502\u2588\u2591\u2502\u2591\u2562\u2588\u2588\u2588\u257b\u2554\u2502 \u2502\u2502   \u2562\u2502\u2588\u255f \u2502 \u2502 \u2502\u2591\u2502\u2591 \u2591\u2502\u2588\u2588\u2591   \u2502 \u2502 \n"
+            L"\u2591 \u2591\u2502  \u2591 \u2591  \u2502   \u2502\u2502 \u2502\u2591  \u2502   \u2502\u2502 \u2502\u2591    \u2591 \u2502 \u2502\u2591 \u2591 \u2591  \u2591 \u2591  \u2591  \n"
+            L"\u2591  \u2591  \u2591    \u2591   \u2502    \u2591   \u2591   \u2502    \u2591      \u2591 \u2502 \u2591    \u2591     \u2591   \u2591 \n"
+            L"      \u2591        \u2591  \u2591 \u2591            \u2591  \u2591            \u2591 \u2591           \u2591 \n"
+            L"                         \u2591                                       \n\n";
+
+        DWORD w;
+        WriteConsoleW(h, art, (DWORD)wcslen(art), &w, NULL);
+    }
+#else
+    void printASCII(void) {
+        printf(
+    "  ██████  ▄▄▄       ▄▄▄▄    ▄▄▄     ▄▄▄█████▓ ▒█████   ███▄    █ \n"
+    "▒██    ▒ ▒████▄    ▓█████▄ ▒████▄   ▓  ██▒ ▓▒▒██▒  ██▒ ██ ▀█   █ \n"
+    "░ ▓██▄   ▒██  ▀█▄  ▒██▒ ▄██▒██  ▀█▄ ▒ ▓██░ ▒░▒██░  ██▒▓██  ▀█ ██▒\n"
+    "  ▒   ██▒░██▄▄▄▄██ ▒██░█▀  ░██▄▄▄▄██░ ▓██▓ ░ ▒██   ██░▓██▒  ▐▌██▒\n"
+    "▒██████▒▒ ▓█   ▓██▒░▓█  ▀█▓ ▓█   ▓██▒ ▒██▒ ░ ░ ████▓▒░▒██░   ▓██░\n"
+    "▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░▒▓███▀▒ ▒▒   ▓▒█░ ▒ ░░   ░ ▒░▒░▒░ ░ ▒░   ▒ ▒ \n"
+    "░ ░▒  ░ ░  ▒   ▒▒ ░▒░▒   ░   ▒   ▒▒ ░   ░      ░ ▒ ▒░ ░ ░░   ░ ▒░\n"
+    "░  ░  ░    ░   ▒    ░    ░   ░   ▒    ░      ░ ░ ░ ▒     ░   ░ ░ \n"
+    "      ░        ░  ░ ░            ░  ░            ░ ░           ░ \n"
+    "                         ░                                       \n\n"
+        );
+    }
+#endif
 
 void printHelp() {
     printASCII();
@@ -41,6 +65,18 @@ void printHelp() {
     printf("-feistel            Select the Feistel cipher module.\n");
     printf("                    For Feistel, pack function and keys into -frag as \"f=<0..3>;k=[...]\".\n");
     printf("                    Example: -frag \"f=0;k=[108,59,164]\" or just -frag \"[108,59,164]\".\n");
+    printf("-block              Select the Feistel *block cipher* module (ECB/CBC/CFB/CRT).\n");
+    printf("                    Syntax: -frag '<MODE>:[k1,k2,k3];f=<0..3>' '<[[L,R], [L,R], ...]]'\n");
+    printf("                    MODE: ECB (also accepts EBC), CBC, CFB, CRT (also accepts CTR).\n");
+    printf("                    Keys: exactly three round keys [k1,k2,k3] (bytes 0..255).\n");
+    printf("                    f=<id> selects F(r,k) variant used in labs:\n");
+    printf("                       f=0 : (r|k)^((r//16)&k)\n");
+    printf("                       f=1 : (r^k)&((k//16)|r)\n");
+    printf("                       f=2 : (r|k)^((k//16)&r)\n");
+    printf("                       f=3 : (r^k)&((r//16)|k)\n");
+    printf("                    Blocks are byte pairs [L,R]. 3 Feistel rounds, final swap undone.\n");
+    printf("                    CBC/CFB: supply IV as the *first* pair in the ciphertext array.\n");
+    printf("                    CRT/CTR: keystream from a=F(i,k1); encrypt [a,a], XOR with C_i.\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -50,14 +86,15 @@ void printHelp() {
     printf("                    candidate plaintext with its keys.\n");
     printf("\n");
     printf("Notes:\n");
-    printf("  • Provide -alph with the exact ordering you expect (case/diacritics included).\n");
-    printf("  • Prefer -frag when you know a snippet; use -brute when you don't.\n");
-    printf("  • If both -frag and -brute are given, the tool will attempt -frag first and may fall back to -brute.\n");
+    printf("  > Provide -alph with the exact ordering you expect (case/diacritics included).\n");
+    printf("  > Prefer -frag when you know a snippet; use -brute when you don't.\n");
+    printf("  > If both -frag and -brute are given, the tool will attempt -frag first and may fall back to -brute.\n");
     printf("\n");
     printf("Examples:\n");
     printf("  <prog> -decypher -affineCaesar -alph \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\" -frag \"THE\"\n");
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
     printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
+    printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
 }
 
 void parseArgs(Arguments* args, const int argv, const char** argc) {
@@ -321,6 +358,7 @@ int main(int argc, const char** argv) {
 #else
     Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
     parseArgs(&args, argc, argv);
+    if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     decypher(&args);
     if (args.out && args.out[0]){
         if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel) recognEntry(args.out);
