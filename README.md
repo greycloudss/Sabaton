@@ -70,6 +70,7 @@ gcc main.c \
     internals/cyphers/vigenere.c \
     internals/cyphers/enigma.c \
     internals/cyphers/feistel.c \
+    internals/lithuanian.c \
     -lm \
     -o sabaton
 ```

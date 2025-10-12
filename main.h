@@ -6,6 +6,7 @@
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
 #include "internals/cyphers/feistel.h"
+#include "internals/cyphers/block.h"
 
 #include "internals/cyphers/enigma.h"
 
@@ -36,6 +37,7 @@ typedef struct {
     char vigenere;
     char enigma;
     char feistel;
+    char block;
 
     char enhancedBrute;
 

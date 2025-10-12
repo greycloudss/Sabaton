@@ -64,8 +64,6 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
     memset(args->flags, 0, sizeof(args->flags));
     args->decrypt = 0;
     args->decypher = 0;
-    args->affineCaesar = 0;
-    args->feistel = 0;
     args->enhancedBrute = 0;
     args->brute = 0;
     args->frag = NULL;
@@ -74,8 +72,16 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
     args->encText = NULL;
     args->out = NULL;
 
+    args->affineCaesar = 0;
+    args->hill = 0;
+    args->vigenere = 0;
+    args->enigma = 0;
+    args->feistel = 0;
+    args->block = 0;
+
     args->scytale = 0;
-    
+    args->transposition = 0;
+
     args->enigma = 0;
 
 
@@ -151,6 +157,11 @@ void parseArgs(Arguments* args, const int argv, const char** argc) {
                 args->enigma = 1;
                 continue;
             }
+
+            if (strcmp(a, "-block") == 0) {
+                args->block = 1;
+                continue;
+            }
             
             if (strcmp(a, "-feistel") == 0) {
                 args->feistel = 1;
@@ -207,12 +218,29 @@ void decypher(Arguments* args) {
         }
     }
 
+    if (args->block) {
+        if (args->brute || !args->frag) {
+            const char* res = blockEntry(args->encText, NULL, 0);
+            args->out = res;
+            return;
+        } else {
+            char flag = 0;
+            char* keys = NULL;
+            feistel_extract(args->frag, &flag, &keys);
+            const char* res = blockEntry(args->encText, keys, flag);
+            if (keys) free(keys);
+            args->out = res;
+            return;
+        }
+    }
+
     if (args->scytale) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = scytaleEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
+
     if (args->transposition) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = transpositionEntry(args->alph, args->encText, frag);
