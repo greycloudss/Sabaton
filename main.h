@@ -14,6 +14,7 @@
 
 #include "internals/cyphers/scytale.h"
 #include "internals/cyphers/transposition.h"
+#include "internals/cyphers/fleissner.h"
 
 #include "internals/lithuanian.h"
 
@@ -34,6 +35,7 @@ typedef struct
 
     char transposition;
     char scytale;
+    char fleissner;
 
     char affineCaesar;
     char hill;
