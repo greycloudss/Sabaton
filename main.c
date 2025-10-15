@@ -2,12 +2,34 @@
 #include <stdio.h>
 #include "util/string.h"
 #include <locale.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <shellapi.h>
-#endif
+
 
 volatile char killswitch = 0;
+#ifdef _WIN32
+    #include <windows.h>
+    #include <shellapi.h>
+    #include <wchar.h>
+    void printASCII(void) {
+        HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (h == INVALID_HANDLE_VALUE) return;
+
+        static const wchar_t* art =
+            L"  \u2588\u2588\u2588\u2588\u2588\u2588  \u256d\u2550\u2550\u2550       \u256d\u256c\u256c\u2550    \u256d\u2550\u2550     \u256d\u2550\u2550\u2588\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2588  \u2588\u2588\u2588\u2584    \u2588 \n"
+            L"\u255a\u2588\u2588    \u2554 \u2502\u2588\u2588\u2588\u2588\u2564    \u2566\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2584   \u2566  \u2588\u2588\u255f \u2552\u2502\u2502\u2588\u2588\u2500\u2500\u2588\u2588\u255f \u2588\u2588\u2502\u2009\u2518\u2588\u2588   \u2588 \n"
+            L"\u2591 \u2592\u2588\u2588\u255b   \u2502\u2588\u2588  \u2570\u2588\u2584  \u2502\u2588\u2588\u2502 \u2570\u256e\u256e\u2502\u2588\u2588  \u2570\u2588\u2584 \u2502 \u2562\u2588\u2588\u2502 \u2570\u2502\u2502\u2588\u2588  \u2588\u2588\u255f\u2502\u2588\u2588  \u2570\u2588 \u2588\u2588\u255f\n"
+            L"  \u2502   \u2588\u2588\u2554\u2502\u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b \u2502\u2588\u2588\u2579\u2550  \u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b\u2502 \u2562\u2588\u2588\u250f \u2502 \u2588\u2588   \u2588\u2588\u2591\u2502\u2588\u2588\u255f  \u2502\u2571\u2588\u2588\u255f\n"
+            L"\u255a\u2588\u2588\u2588\u2588\u2588\u2554\u2502\u2502 \u2566   \u2562\u2588\u2588\u255f\u2591\u2502\u2591\u2588\u2588  \u2570\u2588\u2588\u2502 \u2502\u2588\u2588\u255f \u2591 \u2591 \u2588\u2588\u2588\u2588\u2588\u2552\u2502\u2588\u2588\u2591   \u2562\u2588\u2588\u2591\n"
+            L"\u255a \u2502\u2570\u2502 \u2502 \u2502\u2502   \u2562\u2502\u2588\u2591\u2502\u2591\u2562\u2588\u2588\u2588\u257b\u2554\u2502 \u2502\u2502   \u2562\u2502\u2588\u255f \u2502 \u2502 \u2502\u2591\u2502\u2591 \u2591\u2502\u2588\u2588\u2591   \u2502 \u2502 \n"
+            L"\u2591 \u2591\u2502  \u2591 \u2591  \u2502   \u2502\u2502 \u2502\u2591  \u2502   \u2502\u2502 \u2502\u2591    \u2591 \u2502 \u2502\u2591 \u2591 \u2591  \u2591 \u2591  \u2591  \n"
+            L"\u2591  \u2591  \u2591    \u2591   \u2502    \u2591   \u2591   \u2502    \u2591      \u2591 \u2502 \u2591    \u2591     \u2591   \u2591 \n"
+            L"      \u2591        \u2591  \u2591 \u2591            \u2591  \u2591            \u2591 \u2591           \u2591 \n"
+            L"                         \u2591                                       \n\n";
+
+        DWORD w;
+        WriteConsoleW(h, art, (DWORD)wcslen(art), &w, NULL);
+    }
+#else
+
 void printASCII()
 {
     // cuz why not be cool and hip like the youngins
@@ -22,6 +44,7 @@ void printASCII()
     printf("      ░        ░  ░ ░            ░  ░            ░ ░           ░ \n");
     printf("                         ░                                       \n\n");
 }
+#endif
 
 void printHelp()
 {
@@ -31,6 +54,7 @@ void printHelp()
     printf("\n");
     printf("-decypher           Enable cipher-decoding mode.\n");
     printf("-scytale            Select the Scytale module.\n");
+    printf("-transposition      Select the Transposition module.\n");
     printf("-affineCaesar       Select the Affine Caesar cipher module.\n");
     printf("-hill               Select the Hill cipher module.\n");
     printf("-vigenere           Select the Vigenere cipher module.\n");
@@ -51,6 +75,18 @@ void printHelp()
     printf("                    For meet-in-the-middle (MITM) searches, use K1: and K2: templates\n");
     printf("                    with '?' for unknown bytes, and ranges (p,a,b) or T:0..N to scan:\n");
     printf("                    \"p:263-317|a:1-10|b:1-10|T:0..3|K1:?,128,272,271|K2:212,?,117,102|M:101,177,263,224|R:1\".\n");
+    printf("-block              Select the Feistel *block cipher* module (ECB/CBC/CFB/CRT).\n");
+    printf("                    Syntax: -frag '<MODE>:[k1,k2,k3];f=<0..3>' '<[[L,R], [L,R], ...]]'\n");
+    printf("                    MODE: ECB (also accepts EBC), CBC, CFB, CRT (also accepts CTR).\n");
+    printf("                    Keys: exactly three round keys [k1,k2,k3] (bytes 0..255).\n");
+    printf("                    f=<id> selects F(r,k) variant used in labs:\n");
+    printf("                       f=0 : (r|k)^((r//16)&k)\n");
+    printf("                       f=1 : (r^k)&((k//16)|r)\n");
+    printf("                       f=2 : (r|k)^((k//16)&r)\n");
+    printf("                       f=3 : (r^k)&((r//16)|k)\n");
+    printf("                    Blocks are byte pairs [L,R]. 3 Feistel rounds, final swap undone.\n");
+    printf("                    CBC/CFB: supply IV as the *first* pair in the ciphertext array.\n");
+    printf("                    CRT/CTR: keystream from a=F(i,k1); encrypt [a,a], XOR with C_i.\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -60,15 +96,15 @@ void printHelp()
     printf("                    candidate plaintext with its keys.\n");
     printf("\n");
     printf("Notes:\n");
-    printf("  • Provide -alph with the exact ordering you expect (case/diacritics included).\n");
-    printf("  • Prefer -frag when you know a snippet; use -brute when you don't.\n");
-    printf("  • If both -frag and -brute are given, the tool will attempt -frag first and may fall back to -brute.\n");
+    printf("  > Provide -alph with the exact ordering you expect (case/diacritics included).\n");
+    printf("  > Prefer -frag when you know a snippet; use -brute when you don't.\n");
+    printf("  > If both -frag and -brute are given, the tool will attempt -frag first and may fall back to -brute.\n");
     printf("\n");
     printf("Examples:\n");
     printf("  <prog> -decypher -affineCaesar -alph \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\" -frag \"THE\"\n");
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
-    printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]"
-           "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
+    printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
+    printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
 }
 
 void parseArgs(Arguments *args, const int argv, const char **argc)
@@ -76,8 +112,6 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     memset(args->flags, 0, sizeof(args->flags));
     args->decrypt = 0;
     args->decypher = 0;
-    args->affineCaesar = 0;
-    args->feistel = 0;
     args->enhancedBrute = 0;
     args->brute = 0;
     args->frag = NULL;
@@ -86,7 +120,16 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     args->encText = NULL;
     args->out = NULL;
 
+    args->affineCaesar = 0;
+    args->hill = 0;
+    args->vigenere = 0;
+    args->enigma = 0;
+    args->feistel = 0;
+    args->block = 0;
+
     args->scytale = 0;
+    args->transposition = 0;
+
 
     args->enigma = 0;
     args->aes = 0;
@@ -178,6 +221,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
                 continue;
             }
 
+            if (strcmp(a, "-block") == 0) {
+                args->block = 1;
+                continue;
+            }
             if (strcmp(a, "-feistel") == 0){
                 args->feistel = 1;
                 continue;
@@ -185,6 +232,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
 
             if (strcmp(a, "-aes") == 0){
                 args->aes = 1;
+                continue;
+            }
+            if (strcmp(a, "-transposition") == 0) {
+                args->transposition = 1;
                 continue;
             }
 
@@ -244,16 +295,32 @@ void decypher(Arguments *args)
         }
     }
 
-    if (args->scytale){
-        const char *frag = args->brute ? NULL : args->frag;
-        const char *res = scytaleEntry(args->alph, args->encText, frag);
+    if (args->block) {
+        if (args->brute || !args->frag) {
+            const char* res = blockEntry(args->encText, NULL, 0);
+            args->out = res;
+            return;
+        } else {
+            char flag = 0;
+            char* keys = NULL;
+            feistel_extract(args->frag, &flag, &keys);
+            const char* res = blockEntry(args->encText, keys, flag);
+            if (keys) free(keys);
+            args->out = res;
+            return;
+        }
+    }
+
+    if (args->scytale) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = scytaleEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
 
-    if (args->vigenere){
-        const char *frag = args->brute ? NULL : args->frag;
-        const char *res = vigenereEntry(args->alph, args->encText, frag);
+    if (args->transposition) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = transpositionEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
@@ -282,6 +349,12 @@ void decypher(Arguments *args)
     if (args->aes){
         const char *frag = args->brute ? NULL : args->frag;
         const char *res = aesEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->vigenere) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = vigenereEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
@@ -321,8 +394,10 @@ int main(int argc, const char **argv)
         }
         WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, a[i], need, NULL, NULL);
     }
-    Arguments args = (Arguments){.minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]"};
-    parseArgs(&args, wargc, (const char **)a);
+    Arguments args = (Arguments){ .minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]" };
+    parseArgs(&args, wargc, (const char**)a);
+    //Default alphabet
+    if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     decypher(&args);
     if (args.out && args.out[0]){
         if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel)
@@ -337,6 +412,7 @@ int main(int argc, const char **argv)
 #else
     Arguments args = (Arguments){.minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]"};
     parseArgs(&args, argc, argv);
+    if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     decypher(&args);
     if (args.out && args.out[0]){
         if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel)

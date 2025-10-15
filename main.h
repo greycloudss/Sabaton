@@ -6,12 +6,14 @@
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
 #include "internals/cyphers/feistel.h"
+#include "internals/cyphers/block.h"
 
 #include "internals/cyphers/enigma.h"
 
 #include "internals/cyphers/aes.h"
 
 #include "internals/cyphers/scytale.h"
+#include "internals/cyphers/transposition.h"
 
 #include "internals/lithuanian.h"
 
@@ -30,6 +32,7 @@ typedef struct
     char decrypt;
     char decypher;
 
+    char transposition;
     char scytale;
 
     char affineCaesar;
@@ -38,6 +41,7 @@ typedef struct
     char enigma;
     char feistel;
     char aes;
+    char block;
 
     char enhancedBrute;
 
