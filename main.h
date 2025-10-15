@@ -1,13 +1,15 @@
 #pragma once
 #include <string.h>
 
-//cyphers
+// cyphers
 #include "internals/cyphers/affineCaesar.h"
 #include "internals/cyphers/hill.h"
 #include "internals/cyphers/vigenere.h"
 #include "internals/cyphers/feistel.h"
 
 #include "internals/cyphers/enigma.h"
+
+#include "internals/cyphers/aes.h"
 
 #include "internals/cyphers/scytale.h"
 
@@ -17,12 +19,13 @@
 
 extern volatile char killswitch;
 
-typedef struct {
+typedef struct
+{
     char flags[FLAG_COUNT];
-    const char* wordlist;
+    const char *wordlist;
     unsigned char minLength;
     unsigned char maxLength;
-    const char* specialRegex;
+    const char *specialRegex;
 
     char decrypt;
     char decypher;
@@ -34,15 +37,16 @@ typedef struct {
     char vigenere;
     char enigma;
     char feistel;
+    char aes;
 
     char enhancedBrute;
 
     char brute;
-    const char* frag;
-    const char* alph;
+    const char *frag;
+    const char *alph;
 
     char banner;
 
-    const char* encText;
-    const char* out;
+    const char *encText;
+    const char *out;
 } Arguments;

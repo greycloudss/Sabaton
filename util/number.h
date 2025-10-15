@@ -22,6 +22,21 @@ static int iPow(int x, int power) {
     return (int)r;
 }
 
+
+static int isPrime(int n) {
+    if (n < 2) return 0;
+    if (n % 2 == 0) return n == 2;
+    for (int i = 3; i * i <= n; i += 2)
+        if (n % i == 0) return 0;
+    return 1;
+}
+
+static int modmul(long a, long b, int p) {
+    long r = (a % p) * (b % p);
+    return (int)(r % p);
+}
+
+
 static int mod(int a, int m) {
     int r = a % m;
     return r < 0 ? r + m : r;

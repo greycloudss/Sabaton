@@ -14,28 +14,36 @@ static void parseCSV(const char* s, int* out, int* count) {
     int idx = 0;
     const char* p = s;
 
+    while (*p && (*p == ' ' || *p == '\t' || *p == '[')) p++;
+
     while (*p) {
-        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == ',') p++;
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == ',' || *p == ']')
+            p++;
 
         if (*p == '\0') break;
 
         if (*p == '?') {                
-            out[idx++] = -1;
-            while (*p && *p != ',') p++;
+            out[idx++] = -1; 
+            while (*p && *p != ',' && *p != ']') p++;
             continue;
         }
 
         char* end;
         long v = strtol(p, &end, 10);  
-        if (end == p) {                
-            while (*p && *p != ',') p++;
+        if (end == p) {  
+            while (*p && *p != ',' && *p != ']')
+                p++;
         } else {
             out[idx++] = (int)v;
             p = end;
         }
     }
+
     *count = idx;
 }
+
+
+
 static void invertVector(const int* v, int* inv, int n) {
     for (int i = 0; i < n; i++) {
         inv[v[i]] = i;
