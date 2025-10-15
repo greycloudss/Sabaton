@@ -35,8 +35,8 @@ WIP — core components exist but the project is actively being refined. Expect 
 | Vigenère cipher analysis                   | ✓      | Done        |
 | Enigma cipher                              | ✓      | Done        |
 | Feistel cipher                             | ✓      | Done        |
-| Block cipher modes (of operation)          | ✗      | In progress |
-| AES variant                                | ✗      | —           |
+| Block cipher modes (of operation)          | ✓      | Done        |
+| AES variant                                | ✗      | In progress |
 | Stream ciphers                             | ✗      | —           |
 | Stream ciphers, statistical tests          | ✗      | —           |
 | Knapsack cryptosystem                      | ✗      | —           |
