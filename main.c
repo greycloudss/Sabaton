@@ -55,6 +55,12 @@ void printHelp()
     printf("-decypher           Enable cipher-decoding mode.\n");
     printf("-scytale            Select the Scytale module.\n");
     printf("-transposition      Select the Transposition module.\n");
+    printf("-fleissner          Select the Fleissner module.\n");
+    printf("                    Use -frag \"N;H\" to specify the mask and decrypt.\n");
+    printf("                    N: size of the mask(4 = 4x4)\n");
+    printf("                    H: holes (if holes are at [0, 2], then the H will look something like 101...) \n");
+    printf("-bifid              Select the Bifid cipher module.\n");
+    printf("                    Use -frag \"KEY;5\" to specify the key and column number.\n");
     printf("-affineCaesar       Select the Affine Caesar cipher module.\n");
     printf("-hill               Select the Hill cipher module.\n");
     printf("-vigenere           Select the Vigenere cipher module.\n");
@@ -105,6 +111,8 @@ void printHelp()
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
     printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
     printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
+    printf(" <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
+    printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
 }
 
 void parseArgs(Arguments *args, const int argv, const char **argc)
@@ -129,6 +137,8 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
 
     args->scytale = 0;
     args->transposition = 0;
+    args->fleissner = 0;
+    args->bifid = 0;
 
 
     args->enigma = 0;
@@ -210,6 +220,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
                 args->scytale = 1;
                 continue;
             }
+            if (strcmp(a, "-fleissner") == 0){
+                args->fleissner = 1;
+                continue;
+            }
 
             if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0){
                 args->vigenere = 1;
@@ -238,7 +252,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
                 args->transposition = 1;
                 continue;
             }
-
+            if (strcmp(a, "-bifid") == 0) {
+                args->bifid = 1;
+                continue;
+            }
             if (strcmp(a, "-brute") == 0){
                 args->brute = 1;
                 continue;
@@ -317,10 +334,21 @@ void decypher(Arguments *args)
         args->out = res;
         return;
     }
-
+    if (args->bifid) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = bifidEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
     if (args->transposition) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = transpositionEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->fleissner) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = fleissnerEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
