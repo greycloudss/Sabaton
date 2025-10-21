@@ -33,10 +33,13 @@ static inline size_t hash_u64(uint64_t x, size_t mask) {
 }
 
 static inline uint64_t pack_mid(const int mid[4]) {
-    return ((uint64_t)(uint16_t)mid[0] << 48) |
-           ((uint64_t)(uint16_t)mid[1] << 32) |
-           ((uint64_t)(uint16_t)mid[2] << 16) |
-           ((uint64_t)(uint16_t)mid[3] << 0);
+    uint64_t h = 0xcbf29ce484222325ULL; 
+    for (int i = 0; i < 4; ++i) {
+        uint64_t v = (uint64_t)(mid[i] & 0xFFFFFFFFULL);
+        h ^= v;
+        h *= 0x100000001b3ULL; 
+    }
+    return h;
 }
 
 static int hashInsert(HashTable *h, uint64_t key, int k1val) {
@@ -257,7 +260,7 @@ static int decryptFull(const int in[4], const int Kstart[4],
 
 
 
-const char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b,
+char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b,
                   const int T[4], const int K1[4], int rounds)
 {
     if (!cipher || nBlocks <= 0 || rounds <= 0) 
@@ -301,6 +304,17 @@ const char* mitmHash(const int key1_template[4], const int key2_template[4],
                       int K1max, int K2max, int rounds)
 {
     HashTable *ht = hashCreate((size_t)K1max);
+
+    int k1_unknown_count = 0, k2_unknown_count = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (key1_template[i] == -1) k1_unknown_count++;
+        if (key2_template[i] == -1) k2_unknown_count++;
+    }
+    if (k1_unknown_count != 1 || k2_unknown_count != 1) {
+        hashFree(ht);
+        return "[mitmHash requires exactly one unknown index per key]";
+    }
+
     int midF[4], midB[4];
     int K1[4];
     memcpy(K1, key1_template, sizeof(int)*4);
@@ -352,79 +366,31 @@ const char* mitmHash(const int key1_template[4], const int key2_template[4],
                     k1_unknown, foundK1,
                     k2_unknown, k2x,
                     midB[0], midB[1], midB[2], midB[3]);
-
+                
             hashFree(ht);
             return resultBuf;
         }
     }
+    
 
     hashFree(ht);
     return "[no match found]";
 }
 
 
-const char* mitmHashRanged(
+const char* mitmHashSingle(
     const int key1_template[4],
     const int key2_template[4],
     const int message[4],
     const int cipher[4],
-    int pMin, int pMax,
-    int aMin, int aMax,
-    int bMin, int bMax,
+    int p, int a, int b,
     const int T[4],
-    int Tmax,
-    int rounds)     
+    int rounds)
 {
-    static char buf[256];
-    int Tmat[4];
-
-    for (int p = pMin; p <= pMax; ++p) {
-        if (p < 2 || !isPrime(p)) continue;
-        for (int a = aMin; a <= aMax; ++a)
-        for (int b = bMin; b <= bMax; ++b)
-        {
-            if (Tmax > 0) {
-                for (int t0 = 0; t0 <= Tmax; ++t0)
-                for (int t1 = 0; t1 <= Tmax; ++t1)
-                for (int t2 = 0; t2 <= Tmax; ++t2)
-                for (int t3 = 0; t3 <= Tmax; ++t3)
-                {
-                    Tmat[0]=t0; Tmat[1]=t1; Tmat[2]=t2; Tmat[3]=t3;
-                    printf("trying: p=%d a=%d b=%d T=[%d,%d,%d,%d]\n",
-                            p,a,b,Tmat[0],Tmat[1],Tmat[2],Tmat[3]);
-                    fflush(stdout);
-                    int k1Space = (p < 256 ? p : 256);
-                    int k2Space = (p < 256 ? p : 256);
-                    const char* res = mitmHash(
-                        key1_template, key2_template,
-                        message, cipher,
-                        p,a,b,Tmat,
-                        k1Space,k2Space,
-                        rounds               
-                    );
-                    if (strncmp(res, "FOUND", 5) == 0) {
-                        snprintf(buf, sizeof(buf), "%s", res);
-                        return buf;
-                    }
-                }
-            } else {
-                int k1Space = (p < 256 ? p : 256);
-                int k2Space = (p < 256 ? p : 256);
-                const char* res = mitmHash(
-                    key1_template, key2_template,
-                    message, cipher,
-                    p,a,b,T,
-                    k1Space,k2Space,
-                    rounds              
-                );
-                if (strncmp(res, "FOUND", 5) == 0) {
-                    snprintf(buf, sizeof(buf), "%s", res);
-                    return buf;
-                }
-            }
-        }
-    }
-    return "[no results found in range]";
+    int k1Space = p;
+    int k2Space = p;
+    return mitmHash(key1_template, key2_template, message, cipher,
+                    p, a, b, T, k1Space, k2Space, rounds);
 }
 
 
@@ -435,7 +401,6 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
     if (output) { free(output); output = NULL; }
 
     int p = 0, a = 0, b = 0;
-    int pMin = 0, pMax = 0, aMin = 0, aMax = 0, bMin = 0, bMax = 0;
     int T[4] = {0}, Tcount = 0;
     int Tmax = 0;
 
@@ -454,35 +419,15 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
         while (part) {
             while (*part == ' ' || *part == '\t') ++part;
 
-            if (strncmp(part, "p:", 2) == 0) {
-                char* val = part + 2;
-                if (strchr(val, '-')) sscanf(val, "%d-%d", &pMin, &pMax);
-                else p = pMin = pMax = stoi(val);
-            }
-            else if (strncmp(part, "a:", 2) == 0) {
-                char* val = part + 2;
-                if (strchr(val, '-')) sscanf(val, "%d-%d", &aMin, &aMax);
-                else a = aMin = aMax = stoi(val);
-            }
-            else if (strncmp(part, "b:", 2) == 0) {
-                char* val = part + 2;
-                if (strchr(val, '-')) sscanf(val, "%d-%d", &bMin, &bMax);
-                else b = bMin = bMax = stoi(val);
-            }
-            else if (strncmp(part, "T:", 2) == 0) {
-                char* val = part + 2;
-                if (strstr(val, "..")) sscanf(val, "%d..%d", &T[0], &Tmax);
-                else parseCSV(val, T, &Tcount);
-                if (Tmax > 0 && Tcount == 0) Tcount = 4;
-            }
+            if (strncmp(part, "p:", 2) == 0) p = stoi(part + 2);
+            else if (strncmp(part, "a:", 2) == 0) a = stoi(part + 2);
+            else if (strncmp(part, "b:", 2) == 0) b = stoi(part + 2);
+            else if (strncmp(part, "T:", 2) == 0) parseCSV(part + 2, T, &Tcount);
             else if (strncmp(part, "K:", 2) == 0) parseCSV(part + 2, key, &keyCount);
             else if (strncmp(part, "K1:", 3) == 0) parseCSV(part + 3, key1, &key1Count);
             else if (strncmp(part, "K2:", 3) == 0) parseCSV(part + 3, key2, &key2Count);
             else if (strncmp(part, "M:", 2) == 0) parseCSV(part + 2, message, &messageCount);
-            else if (strncmp(part, "R:", 2) == 0) {
-                char* val = part + 2;
-                rounds = stoi(val);
-            }
+            else if (strncmp(part, "R:", 2) == 0) rounds = stoi(part + 2);
 
             part = strtok(NULL, "|");
         }
@@ -502,17 +447,13 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
         }
     }
 
-    if (p == 0 && pMin > 0) p = pMin;
-    if (a == 0 && aMin > 0) a = aMin;
-    if (b == 0 && bMin > 0) b = bMin;
-    if (Tmax > 0 && Tcount == 0) Tcount = 4;
-
-    if (p <= 0 || (a == 0 && aMin == 0) || (Tcount != 4 && Tmax == 0)) {
+    if (p <= 0 || a == 0 || b == 0 || Tcount != 4) {
         return strdup("[missing or invalid parameters p, a, b, or T]");
     }
 
+
     int hasSingleKey = (keyCount == 4);
-    int hasDoubleKey = (key1Count == 4 || key2Count == 4);
+    int hasDoubleKey = (key1Count == 4 && key2Count == 4);
     int hasBlocks = (messageCount == 4 && cipherCount == 4);
 
     int useMITM = 0;
@@ -556,8 +497,8 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
 
 
 
-        const char* result = mitmHashRanged(k1, k2, message, cipher,
-                                             pMin, pMax, aMin, aMax, bMin, bMax, T, Tmax, rounds);
+        const char* result = mitmHashSingle(k1, k2, message, cipher, p,a,b,
+                                             T, rounds);
         if (result) output = strdup(result);
         else output = strdup("[mitmAESV failed]");
     }

@@ -73,8 +73,8 @@ void printHelp()
     printf("                    Ciphertext is provided as a 2x2 block list, e.g.:\n");
     printf("                    \"[[116,301,44,15],[139,239,295,293],...]\".\n");
     printf("                    For meet-in-the-middle (MITM) searches, use K1: and K2: templates\n");
-    printf("                    with '?' for unknown bytes, and ranges (p,a,b) or T:0..N to scan:\n");
-    printf("                    \"p:263-317|a:1-10|b:1-10|T:0..3|K1:?,128,272,271|K2:212,?,117,102|M:101,177,263,224|R:1\".\n");
+    printf("                    with '?' for unknown bytes to scan:\n");
+    printf("                    \"p:317|a:10|b:10|T:11,12,13,14|K1:?,128,272,271|K2:212,?,117,102|M:101,177,263,224|R:3\".\n");
     printf("-block              Select the Feistel *block cipher* module (ECB/CBC/CFB/CRT).\n");
     printf("                    Syntax: -frag '<MODE>:[k1,k2,k3];f=<0..3>' '<[[L,R], [L,R], ...]]'\n");
     printf("                    MODE: ECB (also accepts EBC), CBC, CFB, CRT (also accepts CTR).\n");
