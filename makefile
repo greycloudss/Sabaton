@@ -16,7 +16,8 @@ all:
 	    ./internals/hashes/crc32.c ./internals/hashes/murmur3.c \
 	    ./internals/hashes/sha1.c ./internals/hashes/sha256.c \
 	    ./internals/hashes/xxhash32.c ./internals/lithuanian.c \
-	    -lm -o $(OUT)
+	    ./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
+	     -lm -o $(OUT)
 
 clean:
 	$(CLEAN)
