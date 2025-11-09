@@ -16,6 +16,8 @@
 #include "internals/cyphers/transposition.h"
 #include "internals/cyphers/fleissner.h"
 #include "internals/cyphers/bifid.h"
+#include "internals/cyphers/stream.h"
+#include "internals/cyphers/stattests.h"
 
 #include "internals/lithuanian.h"
 
@@ -38,6 +40,7 @@ typedef struct
     char scytale;
     char fleissner;
     char bifid;
+    char stream;
 
     char affineCaesar;
     char hill;
@@ -46,6 +49,7 @@ typedef struct
     char feistel;
     char aes;
     char block;
+    int stat;
 
     char enhancedBrute;
 
