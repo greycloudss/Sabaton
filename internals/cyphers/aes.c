@@ -218,19 +218,6 @@ static int encryptFull(const int in[4], const int Kstart[4],
 
 
 
-char* numbersToBytes(const int* v, size_t n) {
-    char* s = malloc(n + 1);
-    if (!s) return NULL;
-    for (size_t i = 0; i < n; ++i) {
-        int x = v[i];
-        if (x < 0 || x > 255) s[i] = '?';
-        else s[i] = (char)(unsigned char)x;
-    }
-    s[n] = '\0';
-    return s;
-}
-
-
 
 static int decryptFull(const int in[4], const int Kstart[4],
                         int rounds, int p, int a, int b,

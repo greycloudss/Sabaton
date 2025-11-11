@@ -72,6 +72,8 @@ gcc main.c \
     internals/cyphers/enigma.c \
     internals/cyphers/feistel.c \
     internals/lithuanian.c \
+    internals/cyphers/merkle.c \
+    internals/cyphers/graham.c \
     -lm \
     -o sabaton
 ```

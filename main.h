@@ -11,6 +11,9 @@
 #include "internals/cyphers/enigma.h"
 
 #include "internals/cyphers/aes.h"
+#include "internals/cyphers/graham.h"
+#include "internals/cyphers/merkle.h"
+
 
 #include "internals/cyphers/scytale.h"
 #include "internals/cyphers/transposition.h"
@@ -50,6 +53,8 @@ typedef struct
     char aes;
     char block;
     int stat;
+    char graham;
+    char merkle;
 
     char enhancedBrute;
 

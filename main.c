@@ -81,6 +81,20 @@ void printHelp()
     printf("                    For meet-in-the-middle (MITM) searches, use K1: and K2: templates\n");
     printf("                    with '?' for unknown bytes to scan:\n");
     printf("                    \"p:317|a:10|b:10|T:11,12,13,14|K1:?,128,272,271|K2:212,?,117,102|M:101,177,263,224|R:3\".\n");
+    printf("-merkle             Select the Merkle–Hellman knapsack module.\n");
+    printf("                    Use -frag \"key:<v1,...,vn>|p:<modulus>|w1:<first_private_weight>\".\n");
+    printf("                    Example:\n");
+    printf("                    -frag \"key:39342119,111996362,9301087,85349912,114247265,79246980,68969224,40465975|p:114537401|w1:811451\"\n");
+    printf("                    Ciphertext is a list of block sums, e.g.:\n");
+    printf("                    \"[206647361,326360316,424226893,314791694,241010404,9301087,...]\".\n");
+    printf("                    Notes: v is the public weight vector; p is the modulus; w1 is the first private weight.\n");
+    printf("-graham             Select the Graham–Shamir knapsack module.\n");
+    printf("                    Use -frag \"key:<v1,...,vn>|p:<modulus>|w1:<first_private_weight>\".\n");
+    printf("                    Example:\n");
+    printf("                    -frag \"key:158474690964,197857591142,123672933023,16130333379,142979253486,151965468545,30534200386,127450405592|p:211936606955|w1:41985769523\"\n");
+    printf("                    Ciphertext is a list of large integers, e.g.:\n");
+    printf("                    \"[495043978037,617076731681,774459852174,...]\".\n");
+    printf("                    Bit slice: message bits are 12–19 from the right (1-based), packed MSB=bit19.\n");
     printf("-block              Select the Feistel *block cipher* module (ECB/CBC/CFB/CRT).\n");
     printf("                    Syntax: -frag '<MODE>:[k1,k2,k3];f=<0..3>' '<[[L,R], [L,R], ...]]'\n");
     printf("                    MODE: ECB (also accepts EBC), CBC, CFB, CRT (also accepts CTR).\n");
@@ -145,6 +159,8 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
 
     args->enigma = 0;
     args->aes = 0;
+    args->merkle = 0;
+    args->graham = 0;
 
     args->banner = 0;
 
@@ -258,6 +274,14 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
 
             if (strcmp(a, "-aes") == 0){
                 args->aes = 1;
+                continue;
+            }
+            if (strcmp(a, "-graham") == 0){
+                args->graham = 1;
+                continue;
+            }
+            if (strcmp(a, "-merkle") == 0){
+                args->merkle = 1;
                 continue;
             }
             if (strcmp(a, "-transposition") == 0) {
@@ -406,6 +430,18 @@ void decypher(Arguments *args)
     if (args->vigenere) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = vigenereEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->graham) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = grahamEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->merkle) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = merkleEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

@@ -1,6 +1,82 @@
 #pragma once
+
+#include <stddef.h>
+#include <stdlib.h>
 #define __INT_MIN (-2147483647 - 1)
 #define __INT_MAX 2147483647
+
+
+
+static unsigned long long mulmod_u64(unsigned long long a, unsigned long long b, unsigned long long m){
+#if defined(__SIZEOF_INT128__)
+    __uint128_t x = (__uint128_t)(a % m) * (__uint128_t)(b % m);
+    return (unsigned long long)(x % m);
+#else
+    unsigned long long res = 0ULL; a %= m; b %= m;
+    while (b){
+        if (b & 1ULL){ res = (res >= m - a) ? (res + a - m) : (res + a); }
+        a = (a >= m - a) ? (a + a - m) : (a + a);
+        b >>= 1ULL;
+    }
+    return res;
+#endif
+}
+
+static long long egcd64(long long a, long long b, long long* x, long long* y){
+    if (b == 0){ *x = 1; *y = 0; return a; }
+    long long x1, y1; long long g = egcd64(b, a % b, &x1, &y1);
+    *x = y1; *y = x1 - (a / b) * y1; return g;
+}
+static unsigned long long modinv_u64(unsigned long long a, unsigned long long m){
+    long long x, y; long long g = egcd64((long long)(a % m), (long long)m, &x, &y);
+    if (g != 1) return 0ULL;
+    long long r = x % (long long)m; if (r < 0) r += (long long)m;
+    return (unsigned long long)r;
+}
+
+static unsigned long long* parse_ull_array(const char* s, int* outCount) {
+    if (outCount) *outCount = 0;
+    if (!s) return NULL;
+
+    int cap = 16;
+    int count = 0;
+    unsigned long long* arr = (unsigned long long*)malloc(sizeof(unsigned long long) * (size_t)cap);
+    if (!arr) return NULL;
+
+    unsigned long long acc = 0;
+    int inNum = 0;
+
+    for (const char* p = s; ; ++p) {
+        int c = (unsigned char)*p;
+
+        if (c >= '0' && c <= '9') {
+            inNum = 1;
+            acc = acc * 10ULL + (unsigned long long)(c - '0');
+        } else {
+            if (inNum) {
+                if (count == cap) {
+                    cap *= 2;
+                    unsigned long long* tmp = (unsigned long long*)realloc(arr, sizeof(unsigned long long) * (size_t)cap);
+                    if (!tmp) { free(arr); return NULL; }
+                    arr = tmp;
+                }
+                arr[count++] = acc;
+                acc = 0;
+                inNum = 0;
+            }
+        }
+
+        if (c == '\0') break; 
+    }
+
+    if (outCount) *outCount = count;
+    return arr;
+}
+
+static int bits_to_byte_msb(const int* bits, int n){
+    int v=0; for (int i=0;i<n;++i) v = (v<<1) | (bits[i] ? 1 : 0);
+    return v & 0xFF;
+}
 
 static int iPow(int x, int power) {
     if (power < 0) return 0;
@@ -20,6 +96,19 @@ static int iPow(int x, int power) {
         }
     }
     return (int)r;
+}
+
+
+static char* numbersToBytes(const int* v, size_t n) {
+    char* s = malloc(n + 1);
+    if (!s) return NULL;
+    for (size_t i = 0; i < n; ++i) {
+        int x = v[i];
+        if (x < 0 || x > 255) s[i] = '?';
+        else s[i] = (char)(unsigned char)x;
+    }
+    s[n] = '\0';
+    return s;
 }
 
 
