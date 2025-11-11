@@ -29,6 +29,19 @@ void bitTest(const unsigned char* bits, int n, double* T, double* p) {
     *p = erfc(*T / sqrt(2.0));
 }
 
+#include <math.h>
+
+// regularized upper incomplete gamma function Q(a, x)
+double gammaincc(double a, double x) {
+    double sum = 1.0, term = 1.0;
+    for (int n = 1; n < 100; n++) {
+        term *= x / (a + n);
+        sum += term;
+        if (term / sum < 1e-8) break;
+    }
+    return exp(-x + a * log(x) - lgamma(a)) * sum;
+}
+
 void pairTest(const unsigned char* bits, int n, double* T, double* p) {
     if (!bits || n < 2) return;
     int counts[4] = {0};
@@ -48,7 +61,8 @@ void pairTest(const unsigned char* bits, int n, double* T, double* p) {
     }
 
     *T = chi2;
-    *p = exp(-0.5 * chi2);
+    *p = gammaincc(3.0 / 2.0, chi2 / 2.0);
+
 }
 
 void pokerTest(const unsigned char* bits, int n, int m, double* T, double* p) {
@@ -70,7 +84,7 @@ void pokerTest(const unsigned char* bits, int n, int m, double* T, double* p) {
         sum += counts[i] * counts[i];
 
     *T = ((double)maxVal / groups) * sum - groups;
-    *p = exp(-0.5 * (*T));
+    *p = gammaincc(((1 << m) - 1) / 2.0, (*T) / 2.0);
     free(counts);
 }
 
