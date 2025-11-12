@@ -96,8 +96,7 @@ const char* bruteAffineCaesar(const char* alph, const char* encText) {
     if (!fptr) return "";
 
     for (int a = 1; a < m; ++a) {
-        int x, y;
-        if (egcd(a, m, &x, &y) != 1) continue;
+        if (gcd(a, m) != 1) continue;
         for (int b = 0; b < m; ++b) {
             char abuf[16], bbuf[16];
             int al, bl;

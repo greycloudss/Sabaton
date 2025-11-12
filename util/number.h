@@ -42,18 +42,65 @@ static int mod(int a, int m) {
     return r < 0 ? r + m : r;
 }
 
-//straight up yoinked from geeksforgeeks
-static int gcd(int a, int b) {
-    int result = ((a < b) ? a : b);
-    while (result > 0) {
-        if (a % result == 0 && b % result == 0) {
-            break;
-        }
-        result--;
-    }
-    return result;
+static inline unsigned long uabs_l(long x){
+    unsigned long ux = (unsigned long)x;
+    unsigned long m  = (unsigned long)-(long)(ux >> (sizeof(long)*8 - 1));
+    return (ux ^ m) - m;
 }
 
+inline static unsigned long gcd(unsigned long x, unsigned  long y) {
+    #ifdef __x86_64__
+        // IF SOMETHING BREAKS UNCOMMENT THIS BLOCK AND COMMENT THE ONE WITH ASM
+        /* 
+            if (!x) return y;
+            if (!y) return x;
+            unsigned k = __builtin_ctzl(x | y);
+            x >>= __builtin_ctzl(x);
+            do{
+                y >>= __builtin_ctzl(y);
+                if (x > y){
+                    unsigned long t = x;
+                    x = y;
+                    y = x;
+                }
+                y -= x;
+            } while (y);
+            return x << k;
+        */
+        //unsigned long x = uabs_l(xa), y = uabs_l(ya);
+        if (!x) return y;
+        if (!y) return x;
+
+        unsigned k = __builtin_ctzl(x | y);
+        if ((x & 1ul) == 0) x >>= __builtin_ctzl(x);
+        
+        do {
+           if ((y & 1ul) == 0) y >>= __builtin_ctzl(y);
+            __asm__ volatile(
+                ".intel_syntax noprefix\n\t"
+                "cmp %0, %1\n\t"
+                "jle 1f\n\t"
+                "xchg %0, %1\n\t"
+                "1:\n\t"
+                "sub %1, %0\n\t"
+                ".att_syntax prefix"
+                :"+r"(x), "+r"(y)
+                :
+                : "cc"
+            );
+        } while (y);
+        return x << k;
+    #else
+        int result = ((xa < ya) ? xa : ya);
+        while (result > 0) {
+            if (a % result == 0 && b % result == 0) {
+                break;
+            }
+            result--;
+        }
+        return result;
+    #endif
+}
 
 /*
 this is the extended Euclidean algorithm which basically finds a gcd between a and b but also gets two integers

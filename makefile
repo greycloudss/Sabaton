@@ -18,7 +18,8 @@ all:
 	    ./internals/hashes/xxhash32.c ./internals/lithuanian.c \
 	    ./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
 		./internals/cyphers/stream.c ./internals/cyphers/stattests.c \
-	     -lm -o $(OUT)
+	    -lm -O3 -march=native -mtune=native -ffast-math -funroll-loops \
+		-fomit-frame-pointer -fno-asynchronous-unwind-tables -fno-unwind-tables -o $(OUT)
 
 clean:
 	$(CLEAN)
