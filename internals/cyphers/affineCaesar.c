@@ -83,7 +83,12 @@ const char* bruteAffineCaesar(const char* alph, const char* encText) {
     static char fname[128];
     const char* base = "affineCaesarBrute-";
     int p = 0;
-    while (base[p] && p < (int)sizeof(fname) - 1) { fname[p] = base[p]; ++p; }
+
+    while (base[p] && p < (int)sizeof(fname) - 1) {
+        fname[p] = base[p];
+        ++p;
+    }
+    
     fname[p] = '\0';
     if (!append_time_txt(fname, (int)sizeof fname)) {
         const char* fb = "unknown.txt";

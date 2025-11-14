@@ -150,8 +150,35 @@ static int utf8_to_u32(const char* s, uint32_t* out, int cap) {
 }
 
 static int u32_index_of(const uint32_t* alph, int m, uint32_t cp) {
-    for (int i = 0; i < m; ++i) if (alph[i] == cp) return i;
-    return -1;
+    static uint32_t* keys = NULL;
+    static int* values = NULL;
+    static int capacity = 0;
+    static int last_m = -1;
+    
+    if (last_m != m) {
+        if (keys) free(keys);
+        if (values) free(values);
+        
+        capacity = 1;
+        while (capacity < m * 2) capacity *= 2;
+        
+        keys = (uint32_t*)calloc((size_t)capacity, sizeof(uint32_t));
+        values = (int*)malloc((size_t)capacity * sizeof(int));
+        
+        for (int i = 0; i < m; i++) {
+            unsigned int hash = alph[i] % capacity;
+            while (keys[hash] != 0) hash = (hash + 1) % capacity;
+            
+            keys[hash] = alph[i];
+            values[hash] = i;
+        }
+        last_m = m;
+    }
+    
+    unsigned int hash = cp % capacity;
+    while (keys[hash] != 0 && keys[hash] != cp) hash = (hash + 1) % capacity;
+    
+    return (keys[hash] == cp) ? values[hash] : -1;
 }
 
 static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {

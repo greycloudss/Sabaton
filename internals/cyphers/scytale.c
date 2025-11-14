@@ -77,11 +77,22 @@ const char* scytaleEntry(const char* alph, const char* encText, const char* frag
         }
     }
 
-    time_t t = time(NULL);
-    char fname[128];
-    if (t != (time_t)-1) snprintf(fname, sizeof(fname), "scytaleBrute_%lld.txt", (long long)t);
-    else snprintf(fname, sizeof(fname), "scytaleBrute_unknown.txt");
+    static char fname[128];
+    const char* base = "scytaleBrute-";
+    int p = 0;
 
+    while (base[p] && p < (int)sizeof(fname) - 1) {
+        fname[p] = base[p];
+        ++p;
+    }
+    
+    fname[p] = '\0';
+    if (!append_time_txt(fname, (int)sizeof fname)) {
+        const char* fb = "unknown.txt";
+        int i = 0;
+        while (fb[i] && p + i < (int)sizeof(fname) - 1) { fname[p + i] = fb[i]; ++i; }
+        fname[p + i] = '\0';
+    }
     FILE* f = fopen(fname, "w");
     if (!f) return strdup("error opening output file");
 

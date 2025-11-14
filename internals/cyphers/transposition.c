@@ -2,8 +2,6 @@
 
 #define MAX_PERM_COLS 8
 
-static void swap_int(int* a, int* b) { int t = *a; *a = *b; *b = t; }
-
 static char* decrypt_with_perm_u32(const uint32_t* text_cp, int n, int cols, const int* perm) {
     if (!text_cp || n <= 0 || cols <= 0 || !perm) return NULL;
     int rows = (n + cols - 1) / cols;
@@ -156,13 +154,25 @@ const char* transpositionEntry(const char* alph, const char* encText, const char
         if (n <= 0) { free(text_cp); return strdup("[utf8 decode error]"); }
 
         int rows = (n + cols - 1) / cols;
-        time_t t = time(NULL);
-        char fname[128];
-        if (t != (time_t)-1) snprintf(fname, sizeof(fname), "transposition_cols%d_%lld.txt", cols, (long long)t);
-        else snprintf(fname, sizeof(fname), "transposition_cols%d.txt", cols);
+        static char fname[128];
+        int p = snprintf(fname, sizeof(fname), "transposition_cols%d-", cols);
+        if (p < 0 || p >= (int)sizeof(fname)) {
+            fname[0] = '\0';
+            p = 0;
+        }
+
+        if (!append_time_txt(fname, (int)sizeof fname)) {
+            const char* fb = "unknown.txt";
+            int i = 0;
+            while (fb[i] && p + i < (int)sizeof(fname) - 1) { fname[p + i] = fb[i]; ++i; }
+            fname[p + i] = '\0';
+        }
 
         FILE* f = fopen(fname, "w");
-        if (!f) { free(text_cp); return strdup("[error opening output file]"); }
+        if (!f) {
+            free(text_cp);
+            return strdup("[error opening output file]");
+        }
         fprintf(f, "# brute transposition results cols=%d rows=%d permutations=%d\n", cols, rows, 0);
 
         int rc = permute_and_write(text_cp, n, cols, f);

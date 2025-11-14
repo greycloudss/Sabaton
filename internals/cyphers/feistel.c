@@ -15,11 +15,6 @@ static int is_valid_plaintext(const char* s){
     return 1;
 }
 
-// static int is_valid_plaintext(const char* s){
-//     return s != NULL;
-// }
-
-
 int selFunc(char flag, uint8_t m, uint8_t k){
     switch (flag){
         case 0: return (uint8_t)((m | k) ^ ((m / 16) & k));

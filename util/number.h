@@ -98,6 +98,12 @@ static int inv2x2mod(const int K[4], int m, int invK[4]) {
     return 1;
 }
 
+static void swap_int(int* a, int* b) { // f u my xor swap is better cuz no random var
+    if (a == b) return;
+    *a ^= *b;
+    *b ^= *a;
+    *a ^= *b;
+}
 
 static void mat2_mul_vec_mod(const int k[4], const int v[2], int m, int out[2]){
     out[0] = mod(k[0]*v[0] + k[1]*v[1], m);
