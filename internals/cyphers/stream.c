@@ -1,6 +1,6 @@
 //============================A1/5 Not DONE=======================================
 #include "stream.h"
-#include "../lithuanian.h"
+#include "../enhancements/lith/lithuanian.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -15,7 +15,7 @@ all:
 	    ./internals/cyphers/vigenere.c \
 	    ./internals/hashes/crc32.c ./internals/hashes/murmur3.c \
 	    ./internals/hashes/sha1.c ./internals/hashes/sha256.c \
-	    ./internals/hashes/xxhash32.c ./internals/lithuanian.c \
+	    ./internals/hashes/xxhash32.c ./internals/enhancements/lith/lithuanian.c \
 	    ./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
 		./internals/cyphers/stream.c ./internals/cyphers/stattests.c \
 	    -lm -O3 -march=native -mtune=native -ffast-math -funroll-loops \

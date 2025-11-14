@@ -20,7 +20,7 @@
 #include "internals/cyphers/stattests.h"
 #include "internals/cyphers/stream.h"
 
-#include "internals/lithuanian.h"
+#include "internals/enhancements/lith/lithuanian.h"
 
 #define FLAG_COUNT 4
 

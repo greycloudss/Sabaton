@@ -1,5 +1,5 @@
 #include "feistel.h"
-#include "../lithuanian.h"
+#include "../enhancements/lith/lithuanian.h"
 
 #define MAX_FUNCS 5
 

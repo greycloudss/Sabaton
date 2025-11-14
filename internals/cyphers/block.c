@@ -1,5 +1,5 @@
 #include "block.h"
-#include "../lithuanian.h"
+#include "../enhancements/lith/lithuanian.h"
 
 
 static unsigned char g_fflag = 2;
