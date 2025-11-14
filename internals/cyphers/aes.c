@@ -122,7 +122,7 @@ static int encryptRound(const int* block, const int* key, const int* T, int a, i
 
     // Layer 2 
 
-    swap_int(out[2], out[3]);
+    swap_int(&out[2], &out[3]);
 
     // Layer 3 
     for (int i = 0; i < 2; ++i) {
