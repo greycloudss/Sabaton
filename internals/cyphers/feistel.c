@@ -1,7 +1,12 @@
 #include "feistel.h"
 #include "../enhancements/lith/lithuanian.h"
 
-#define MAX_FUNCS 5
+#ifdef USE_CUDA 
+    #define MAX_FUNCS 256
+    #include "../enhancements/cuda/gpu_main.h"
+#else
+    #define MAX_FUNCS 5
+#endif
 
 static char* g_first_line = NULL;
 static size_t g_first_len = 0;
