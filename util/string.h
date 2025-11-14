@@ -184,9 +184,28 @@ static int u32_index_of(const uint32_t* alph, int m, uint32_t cp) {
 static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {
     int k = 0;
     for (int i = 0; i < n; ++i) {
-        char buf[4]; int len = utf8_encode_one(cps[i], buf);
-        if (k + len >= cap) break;
-        for (int j = 0; j < len; ++j) out[k++] = buf[j];
+        uint32_t cp = cps[i];
+        int len;
+        
+        if (cp <= 0x7F) {
+            if (k + 1 >= cap) break;
+            out[k++] = (char)cp;
+        } else if (cp <= 0x7FF) {
+            if (k + 2 >= cap) break;
+            out[k++] = (char)(0xC0 | (cp >> 6));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0xFFFF) {
+            if (k + 3 >= cap) break;
+            out[k++] = (char)(0xE0 | (cp >> 12));
+            out[k++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        } else {
+            if (k + 4 >= cap) break;
+            out[k++] = (char)(0xF0 | (cp >> 18));
+            out[k++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+            out[k++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        }
     }
     if (k < cap) out[k] = '\0';
     return k;
