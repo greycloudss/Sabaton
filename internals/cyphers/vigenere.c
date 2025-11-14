@@ -150,7 +150,10 @@ static double total_chi_for_keylength(const uint32_t* alphabet, int m, const uin
         } else {
             for (int s = 0; s < m; ++s) {
                 double c = chi_for_shift(alphabet, m, columns[j], columnLengths[j], s, expected);
-                if (c < bestChi) { bestChi = c; bestShift = s; }
+                if (c < bestChi) {
+                    bestChi = c;
+                    bestShift = s;
+                }
             }
         }
         total += bestChi;

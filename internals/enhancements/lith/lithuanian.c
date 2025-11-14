@@ -95,13 +95,19 @@ static void process_and_write(FILE* out, FILE* in) {
         if ((size_t)n == lcap) {
             size_t nl = lcap * 2;
             char** t1 = realloc(lines, nl * sizeof(char*));
-            if (!t1) { free(line); break; }
+            if (!t1) {
+                free(line);
+                break;
+            }
             lines = t1; lcap = nl;
         }
         if ((size_t)n == rcap) {
             size_t nr = rcap * 2;
             Row* t2 = realloc(rows, nr * sizeof(Row));
-            if (!t2) { free(line); break; }
+            if (!t2) {
+                free(line);
+                break;
+            }
             rows = t2; rcap = nr;
         }
         lines[n] = line;
@@ -133,11 +139,18 @@ const char* recognEntry(const char* bruteFile) {
     size_t bflen = strlen(bruteFile);
     size_t alloc = bflen + 5;
     char* enhFname = malloc(alloc);
-    if (!enhFname) { fclose(in); return NULL; }
+    if (!enhFname) {
+        fclose(in);
+        return NULL;
+    }
     snprintf(enhFname, alloc, "enh-%s", bruteFile);
 
     FILE* out = fopen(enhFname, "wb");
-    if (!out) { free(enhFname); fclose(in); return NULL; }
+    if (!out) {
+        free(enhFname);
+        fclose(in);
+        return NULL;
+    }
 
     process_and_write(out, in);
 

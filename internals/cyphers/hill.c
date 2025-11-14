@@ -5,16 +5,26 @@ static char* hillDecrypt2x2(const char* alph, const char* enc, const int invK[4]
     uint32_t* alph_u32 = (uint32_t*)malloc(sizeof(uint32_t) * (alph_bytes + 1));
     if (!alph_u32) return NULL;
     int m = utf8_to_u32(alph, alph_u32, alph_bytes + 1);
-    if (m <= 0) { free(alph_u32); return NULL; }
+    if (m <= 0) {
+        free(alph_u32);
+        return NULL;
+    }
 
     int enc_bytes = slen(enc);
     uint32_t* enc_u32 = (uint32_t*)malloc(sizeof(uint32_t) * (enc_bytes + 1));
-    if (!enc_u32) { free(alph_u32); return NULL; }
+    if (!enc_u32) {
+        free(alph_u32);
+        return NULL;
+    }
     int enc_n = utf8_to_u32(enc, enc_u32, enc_bytes + 1);
 
     int out_cap = (enc_n + 1) * 4 + 1;
     char* out = (char*)malloc(out_cap);
-    if (!out) { free(alph_u32); free(enc_u32); return NULL; }
+    if (!out) {
+        free(alph_u32);
+        free(enc_u32);
+        return NULL;
+    }
 
     int oi = 0, buf[2], bcount = 0;
 
@@ -24,7 +34,11 @@ static char* hillDecrypt2x2(const char* alph, const char* enc, const int invK[4]
         if (idx < 0) {
             char tmp[4];
             int len = utf8_encode_one(cp, tmp);
-            if (oi + len < out_cap) { for (int t = 0; t < len; ++t) out[oi++] = tmp[t]; }
+            if (oi + len < out_cap) {
+                for (int t = 0; t < len; ++t) {
+                    out[oi++] = tmp[t];
+                }
+            }
             continue;
         }
         buf[bcount++] = idx;
@@ -34,9 +48,17 @@ static char* hillDecrypt2x2(const char* alph, const char* enc, const int invK[4]
             int y1 = mod(invK[1]*x0 + invK[3]*x1, m);
             char tmp[4];
             int len = utf8_encode_one(alph_u32[y0], tmp);
-            if (oi + len < out_cap) { for (int t = 0; t < len; ++t) out[oi++] = tmp[t]; }
+            if (oi + len < out_cap) {
+                for (int t = 0; t < len; ++t) {
+                    out[oi++] = tmp[t];
+                }
+            }
             len = utf8_encode_one(alph_u32[y1], tmp);
-            if (oi + len < out_cap) { for (int t = 0; t < len; ++t) out[oi++] = tmp[t]; }
+            if (oi + len < out_cap) {
+                for (int t = 0; t < len; ++t) {
+                    out[oi++] = tmp[t];
+                }
+            }
             bcount = 0;
         }
     }
@@ -47,9 +69,17 @@ static char* hillDecrypt2x2(const char* alph, const char* enc, const int invK[4]
         int y1 = mod(invK[1]*x0 + invK[3]*x1, m);
         char tmp[4];
         int len = utf8_encode_one(alph_u32[y0], tmp);
-        if (oi + len < out_cap) { for (int t = 0; t < len; ++t) out[oi++] = tmp[t]; }
+        if (oi + len < out_cap) {
+            for (int t = 0; t < len; ++t) {
+                out[oi++] = tmp[t];
+            }
+        }
         len = utf8_encode_one(alph_u32[y1], tmp);
-        if (oi + len < out_cap) { for (int t = 0; t < len; ++t) out[oi++] = tmp[t]; }
+        if (oi + len < out_cap) {
+            for (int t = 0; t < len; ++t) {
+                out[oi++] = tmp[t];
+            }
+        }
     }
 
     if (oi < out_cap) out[oi] = 0; else out[out_cap - 1] = 0;

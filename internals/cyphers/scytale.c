@@ -7,13 +7,19 @@ static char* decryptBrute(const char* encrypted_text, int rows, int k) {
     uint32_t* in = malloc(sizeof(uint32_t) * cap);
     if (!in) return NULL;
     int n = utf8_to_u32(encrypted_text, in, cap);
-    if (n == 0) { free(in); return strdup(""); }
+    if (n == 0) {
+        free(in);
+        return strdup("");
+    }
 
     int cols = (int)((n + (size_t)rows - 1u) / (size_t)rows);
     int short_cols = cols * rows - n;
 
     uint32_t* out = malloc(sizeof(uint32_t) * (n + 1));
-    if (!out) { free(in); return NULL; }
+    if (!out) {
+        free(in);
+        return NULL;
+    }
 
     int out_i = 0;
     for (int i = 0; i < rows; ++i) {
@@ -31,7 +37,11 @@ static char* decryptBrute(const char* encrypted_text, int rows, int k) {
 
     int out_buf_cap = (out_i + 1) * 4 + 8;
     char* utf8 = malloc(out_buf_cap);
-    if (!utf8) { free(in); free(out); return NULL; }
+    if (!utf8) {
+        free(in);
+        free(out);
+        return NULL;
+    }
     u32_to_utf8(out, out_i, utf8, out_buf_cap);
 
     free(in);
@@ -46,13 +56,19 @@ static char* decryptK(const char* encrypted_text, int num) {
 
 static const char* decryptEntry(const char* encrypted_text, int num) {
     static char* output = NULL;
-    if (output) { free(output); output = NULL; }
+    if (output) {
+        free(output);
+        output = NULL;
+    }
 
     if (!encrypted_text) return strdup("no input");
 
     if (num != 0) {
         char* cand = decryptK(encrypted_text, num);
-        if (cand) { output = strdup(cand); free(cand); }
+        if (cand) {
+            output = strdup(cand);
+            free(cand);
+        }
     } else {
         for (int k = 1; k < 30; ++k) {
             char* cand = decryptBrute(encrypted_text, k, k);
@@ -90,7 +106,10 @@ const char* scytaleEntry(const char* alph, const char* encText, const char* frag
     if (!append_time_txt(fname, (int)sizeof fname)) {
         const char* fb = "unknown.txt";
         int i = 0;
-        while (fb[i] && p + i < (int)sizeof(fname) - 1) { fname[p + i] = fb[i]; ++i; }
+        while (fb[i] && p + i < (int)sizeof(fname) - 1) {
+            fname[p + i] = fb[i];
+            ++i;
+        }
         fname[p + i] = '\0';
     }
     FILE* f = fopen(fname, "w");
@@ -105,7 +124,10 @@ const char* scytaleEntry(const char* alph, const char* encText, const char* frag
     fclose(f);
 
     static char* static_fname = NULL;
-    if (static_fname) { free(static_fname); static_fname = NULL; }
+    if (static_fname) {
+        free(static_fname);
+        static_fname = NULL;
+    }
     static_fname = strdup(fname);
     return static_fname;
 }

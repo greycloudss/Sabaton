@@ -202,13 +202,19 @@ static int encryptFull(const int in[4], const int Kstart[4],
     if (rounds <= 0) return 0;
     int (*keys)[4] = malloc(rounds * 4 * sizeof(int));
     if (!keys) return 0;
-    if (!generateKeys(Kstart, rounds, p, a, b, keys)) { free(keys); return 0; }
+    if (!generateKeys(Kstart, rounds, p, a, b, keys)) {
+        free(keys);
+        return 0;
+    }
 
     int curIn[4], tmp[4];
     memcpy(curIn, in, 4 * sizeof(int));
 
     for (int r = 0; r < rounds; ++r) {
-        if (!encryptRound(curIn, keys[r], T, a, b, p, tmp)) { free(keys); return 0; }
+        if (!encryptRound(curIn, keys[r], T, a, b, p, tmp)) {
+            free(keys);
+            return 0;
+        }
         memcpy(curIn, tmp, 4 * sizeof(int));
     }
     memcpy(out, curIn, 4 * sizeof(int));
@@ -239,16 +245,25 @@ static int decryptFull(const int in[4], const int Kstart[4],
     if (rounds <= 0) return 0;
     int (*keys)[4] = malloc(rounds * 4 * sizeof(int));
     if (!keys) return 0;
-    if (!generateKeys(Kstart, rounds, p, a, b, keys)) { free(keys); return 0; }
+    if (!generateKeys(Kstart, rounds, p, a, b, keys)) {
+        free(keys);
+        return 0;
+    }
 
     int tInv[4];
-    if (!inv2x2mod(T, p, tInv)) { free(keys); return 0; }
+    if (!inv2x2mod(T, p, tInv)) {
+        free(keys);
+        return 0;
+    }
 
     int curIn[4], tmp[4];
     memcpy(curIn, in, 4 * sizeof(int));
 
     for (int r = rounds - 1; r >= 0; --r) {
-        if (!decryptRound(curIn, keys[r], tInv, a, b, p, tmp)) { free(keys); return 0; }
+        if (!decryptRound(curIn, keys[r], tInv, a, b, p, tmp)) {
+            free(keys);
+            return 0;
+        }
         memcpy(curIn, tmp, 4 * sizeof(int));
     }
 
@@ -398,7 +413,10 @@ const char* mitmHashSingle(
 
 const char* aesEntry(const char* alphabet, const char* cipherText, const char* fragment) {
     static char* output = NULL;
-    if (output) { free(output); output = NULL; }
+    if (output) {
+        free(output);
+        output = NULL;
+    }
 
     int p = 0, a = 0, b = 0;
     int T[4] = {0}, Tcount = 0;
@@ -465,7 +483,10 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
     }
     else if (hasSingleKey && hasBlocks) {
         for (int i = 0; i < 4; ++i) {
-            if (key[i] == -1) { useMITM = 1; break; }
+            if (key[i] == -1) {
+                useMITM = 1;
+                break;
+            }
         }
     }
 

@@ -75,7 +75,14 @@ static void i32_to_str(int v, char* out, int* len) {
     unsigned int u = (v < 0) ? (unsigned int)(-v) : (unsigned int)v;
     char rev[16];
     int n = 0;
-    if (u == 0) { rev[n++] = '0'; } else { while (u) { rev[n++] = (char)('0' + (u % 10)); u /= 10; } }
+    if (u == 0) {
+        rev[n++] = '0';
+    } else {
+        while (u) {
+            rev[n++] = (char)('0' + (u % 10));
+            u /= 10;
+        }
+    }
     int k = 0;
     if (v < 0) out[k++] = '-';
     for (int i = 0; i < n; ++i) out[k++] = rev[n - 1 - i];
@@ -107,7 +114,10 @@ static void largeWrite(const char* fname) {
 
 static int utf8_decode_one(const char* s, uint32_t* cp) {
     unsigned char c0 = (unsigned char)s[0];
-    if (c0 < 0x80) { *cp = c0; return c0 ? 1 : 0; }
+    if (c0 < 0x80) {
+        *cp = c0;
+        return c0 ? 1 : 0;
+    }
     if ((c0 >> 5) == 0x6) {
         unsigned char c1 = (unsigned char)s[1];
         if ((c1 & 0xC0) != 0x80) return 0;
@@ -130,10 +140,25 @@ static int utf8_decode_one(const char* s, uint32_t* cp) {
 }
 
 static int utf8_encode_one(uint32_t cp, char out[4]) {
-    if (cp <= 0x7F) { out[0] = (char)cp; return 1; }
-    if (cp <= 0x7FF) { out[0] = (char)(0xC0 | (cp >> 6)); out[1] = (char)(0x80 | (cp & 0x3F)); return 2; }
-    if (cp <= 0xFFFF) { out[0] = (char)(0xE0 | (cp >> 12)); out[1] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[2] = (char)(0x80 | (cp & 0x3F)); return 3; }
-    out[0] = (char)(0xF0 | (cp >> 18)); out[1] = (char)(0x80 | ((cp >> 12) & 0x3F)); out[2] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[3] = (char)(0x80 | (cp & 0x3F));
+    if (cp <= 0x7F) {
+        out[0] = (char)cp;
+        return 1;
+    }
+    if (cp <= 0x7FF) {
+        out[0] = (char)(0xC0 | (cp >> 6));
+        out[1] = (char)(0x80 | (cp & 0x3F));
+        return 2;
+    }
+    if (cp <= 0xFFFF) {
+        out[0] = (char)(0xE0 | (cp >> 12));
+        out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (cp & 0x3F));
+        return 3;
+    }
+    out[0] = (char)(0xF0 | (cp >> 18));
+    out[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+    out[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+    out[3] = (char)(0x80 | (cp & 0x3F));
     return 4;
 }
 
@@ -236,8 +261,14 @@ static int parse_frag(const char* s, int* out, int cap){
     int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
     while (s[i]){
         char c = s[i++];
-        if (c == '-' && !innum){ sign = -1; innum = 1; acc = 0; }
-        else if (c >= '0' && c <= '9'){ acc = acc*10 + (c - '0'); innum = 1; }
+        if (c == '-' && !innum) {
+            sign = -1;
+            innum = 1;
+            acc = 0;
+        } else if (c >= '0' && c <= '9') {
+            acc = acc*10 + (c - '0');
+            innum = 1;
+        }
         else if (c == ',' || c == ' ' || c == '\t' || c == '\n' || c == '\r'){
             if (innum){
                 if (n < cap) out[n++] = sign*acc;
@@ -258,23 +289,23 @@ static int* parse_frag_array(const char* s, int* out_n){
     int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
     while (s[i]){
         char c = s[i++];
-        if (c == '?'){
-            if (innum){
+        if (c == '?') {
+            if (innum) {
                 n++;
                 innum = 0;
                 sign = 1;
                 acc = 0;
             }
             n++;
-        } else if (c == '-' && !innum){
+        } else if (c == '-' && !innum) {
             sign = -1;
             innum = 1;
             acc = 0;
-        } else if (c >= '0' && c <= '9'){
+        } else if (c >= '0' && c <= '9') {
             acc = acc*10 + (c - '0');
             innum = 1;
         } else {
-            if (innum){
+            if (innum) {
                 n++;
                 innum = 0;
                 sign = 1;
@@ -302,23 +333,23 @@ static int* parse_frag_array(const char* s, int* out_n){
     innum = 0;
     while (s[i] && k < n){
         char c = s[i++];
-        if (c == '?'){
-            if (innum){
+        if (c == '?') {
+            if (innum) {
                 out[k++] = sign*acc;
                 innum = 0;
                 sign = 1;
                 acc = 0;
             }
             out[k++] = -1;
-        } else if (c == '-' && !innum){
+        } else if (c == '-' && !innum) {
             sign = -1;
             innum = 1;
             acc = 0;
-        } else if (c >= '0' && c <= '9'){
+        } else if (c >= '0' && c <= '9') {
             acc = acc*10 + (c - '0');
             innum = 1;
         } else {
-            if (innum){
+            if (innum) {
                 out[k++] = sign*acc;
                 innum = 0;
                 sign = 1;
