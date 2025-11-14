@@ -134,11 +134,13 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     args->enigma = 0;
     args->feistel = 0;
     args->block = 0;
+    args->stat = 0;
 
     args->scytale = 0;
     args->transposition = 0;
     args->fleissner = 0;
     args->bifid = 0;
+    args->stream = 0;
 
 
     args->enigma = 0;
@@ -224,6 +226,16 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
                 args->fleissner = 1;
                 continue;
             }
+
+            if (strcmp(a, "-stream") == 0){
+                args->stream = 1;
+                continue;
+            }
+            if (strcmp(a, "-stat") == 0){
+                args->stat = 1;
+                continue;
+            }
+            
 
             if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0){
                 args->vigenere = 1;
@@ -337,6 +349,17 @@ void decypher(Arguments *args)
     if (args->bifid) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = bifidEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->stream) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = streamEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->stat) {
+        const char* res = statEntry(args->alph, args->encText);
         args->out = res;
         return;
     }
