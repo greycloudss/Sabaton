@@ -53,7 +53,10 @@ float d_voice_measure(const char* line, size_t len) {
         char a = (char)tolower((unsigned char)line[i]);
         char b = (char)tolower((unsigned char)line[i+1]);
         for (size_t k = 0; k < 22; ++k) {
-            if (a == digs[k][0] && b == digs[k][1]) { count++; break; }
+            if (a == digs[k][0] && b == digs[k][1]) {
+                count++;
+                break;
+            }
         }
     }
     return len ? (float)count / (float)len : 0.0f;
@@ -77,7 +80,12 @@ static void process_and_write(FILE* out, FILE* in) {
     size_t lcap = 64, rcap = 64;
     char** lines = malloc(lcap * sizeof(char*));
     Row* rows = malloc(rcap * sizeof(Row));
-    if (!lines || !rows) { free(buf); free(lines); free(rows); return; }
+    if (!lines || !rows) {
+        free(buf);
+        free(lines);
+        free(rows);
+        return;
+    }
 
     int n = 0;
     for (;;) {
