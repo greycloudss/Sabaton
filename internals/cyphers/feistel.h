@@ -9,3 +9,20 @@
 
 
 const char* feistelEntry(const char* encText, const char* frag, char flag);
+
+
+#ifdef USE_CUDA
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
+
+    extern char g_funcFlag;
+
+
+    const char* feistelBrute(const char* alph, const char* encText, const char* frag);
+
+    #ifdef __cplusplus
+    }
+    #endif
+#endif

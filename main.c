@@ -30,6 +30,7 @@ volatile char killswitch = 0;
     }
 #else
 
+
 void printASCII()
 {
     // cuz why not be cool and hip like the youngins
@@ -100,6 +101,9 @@ void printHelp()
     printf("-brute              Try all valid keys (a coprime with m; b in [0..m-1]) and output each\n");
     printf("-enhancedBrute      ONLY FOR LITHUANIAN; Try all valid keys but also sort by phonetic coherency \n");
     printf("                    candidate plaintext with its keys.\n");
+    #ifdef USE_CUDA
+        printf("-gpu                uses the gpu to break some cyphers :)\n");
+    #endif
     printf("\n");
     printf("Notes:\n");
     printf("  > Provide -alph with the exact ordering you expect (case/diacritics included).\n");
@@ -115,8 +119,7 @@ void printHelp()
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
 }
 
-void parseArgs(Arguments *args, const int argv, const char **argc)
-{
+void parseArgs(Arguments *args, const int argv, const char **argc) {
     memset(args->flags, 0, sizeof(args->flags));
     args->decrypt = 0;
     args->decypher = 0;
@@ -128,14 +131,17 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     args->encText = NULL;
     args->out = NULL;
 
+    #ifdef USE_CUDA
+        args->gpu = 0;
+    #endif
+
     args->affineCaesar = 0;
     args->hill = 0;
     args->vigenere = 0;
-    args->enigma = 0;
     args->feistel = 0;
     args->block = 0;
-    args->stat = 0;
 
+    args->stat = 0;
     args->scytale = 0;
     args->transposition = 0;
     args->fleissner = 0;
@@ -171,7 +177,13 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
             args->enhancedBrute = 1;
             continue;
         }
-
+        
+        #ifdef USE_CUDA
+            if (strcmp(a, "-gpu") == 0) {
+                args->gpu = 1;
+                continue;
+            }
+        #endif
         if (args->decrypt){
             if (strcmp(a, "-w") == 0){
                 if (i + 1 < argv)
@@ -207,7 +219,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
             }
         }
 
-        if (args->decypher){
+        if (args->decypher) {
             if (strcmp(a, "-affineCaesar") == 0){
                 args->affineCaesar = 1;
                 continue;
@@ -298,27 +310,24 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     }
 }
 
-void decypher(Arguments *args)
-{
+void decypher(Arguments *args) {
     if (!args || !args->decypher)
         return;
 
     if (args->banner)
         printASCII();
 
-    if (args->feistel){
-        if (args->brute || !args->frag){
-            const char *res = feistelEntry(args->encText, NULL, 0);
+    if (args->feistel) {
+        if (args->brute || !args->frag) {
+            const char* res = feistelEntry(args->encText, NULL, 0);
             args->out = res;
             return;
-        }
-        else{
+        } else {
             char flag = 0;
-            char *keys = NULL;
+            char* keys = NULL;
             feistel_extract(args->frag, &flag, &keys);
-            const char *res = feistelEntry(args->encText, keys, flag);
-            if (keys)
-                free(keys);
+            const char* res = feistelEntry(args->encText, keys, flag);
+            if (keys) free(keys);
             args->out = res;
             return;
         }
@@ -413,6 +422,21 @@ void decypher(Arguments *args)
 
 }
 
+#ifdef USE_CUDA
+    #include "internals/enhancements/cuda/entry.h"
+#endif
+
+typedef void (*func_Ptr)(Arguments*);
+
+static func_Ptr executionSelectionFunc(char gpu_flag) {
+    #ifdef USE_CUDA
+        if (gpu_flag)
+            return &entryCudaEnhancement;
+    #endif
+    
+    return &decypher;
+}
+
 int main(int argc, const char **argv)
 {
     setlocale(LC_ALL, "");
@@ -464,10 +488,13 @@ int main(int argc, const char **argv)
     Arguments args = (Arguments){.minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]"};
     parseArgs(&args, argc, argv);
     if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    decypher(&args);
+    executionSelectionFunc(args.gpu)(&args);
     if (args.out && args.out[0]){
-        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel)
+        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && args.feistel) {
+            printf("Hi fuckass im here");
             recognEntry(args.out);
+        }
+            
         print(args.out);
     }
     return 0;
