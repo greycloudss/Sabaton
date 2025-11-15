@@ -26,6 +26,7 @@ void entryCudaEnhancement(Arguments* args) {
 
     if (args->feistel) {
         int sel;
+        printf("Select GPU brute-force function mode (check in -h):\n");
         if (scanf(" %1d", &sel) != 1) sel = 0;
         if (sel < 0) sel = 0;
         if (sel > 4) sel = 4;
