@@ -54,12 +54,12 @@ void entryCudaEnhancement(Arguments* args) {
     //     }
     // }
 
-    if (args->scytale) {
-        const char* frag = args->brute ? NULL : args->frag;
-        const char* res = scytaleEntry(args->alph, args->encText, frag);
-        args->out = res;
-        return;
-    }
+    // if (args->scytale) {
+    //     const char* frag = args->brute ? NULL : args->frag;
+    //     const char* res = scytaleEntry(args->alph, args->encText, frag);
+    //     args->out = res;
+    //     return;
+    // }
 
     // if (args->bifid) {
     //     const char* frag = args->brute ? NULL : args->frag;

@@ -100,7 +100,7 @@ static int iPow(int x, int power) {
 
 
 static char* numbersToBytes(const int* v, size_t n) {
-    char* s = malloc(n + 1);
+    char* s = (char*)malloc(n + 1);
     if (!s) return NULL;
     for (size_t i = 0; i < n; ++i) {
         int x = v[i];
