@@ -21,45 +21,6 @@
 #include "internals/cyphers/stream.h"
 
 #include "internals/enhancements/lith/lithuanian.h"
-
-#define FLAG_COUNT 4
+#include "internals/enhancements/cuda/entry.h"
 
 extern volatile char killswitch;
-
-typedef struct
-{
-    char flags[FLAG_COUNT];
-    const char *wordlist;
-    unsigned char minLength;
-    unsigned char maxLength;
-    const char *specialRegex;
-
-    char decrypt;
-    char decypher;
-
-    char transposition;
-    char scytale;
-    char fleissner;
-    char bifid;
-    char stream;
-
-    char affineCaesar;
-    char hill;
-    char vigenere;
-    char enigma;
-    char feistel;
-    char aes;
-    char block;
-    int stat;
-
-    char enhancedBrute;
-
-    char brute;
-    const char *frag;
-    const char *alph;
-
-    char banner;
-
-    const char *encText;
-    const char *out;
-} Arguments;

@@ -5,7 +5,7 @@ Sabaton is a lightweight, offline cracking & keyspace toolkit written in C. It f
 > Part of the **Armourer** series of projects.  
 > **Work in Progress**
 
----
+
 
 ## Features
 

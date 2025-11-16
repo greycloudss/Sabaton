@@ -14,21 +14,21 @@ volatile char killswitch = 0;
         if (h == INVALID_HANDLE_VALUE) return;
 
         static const wchar_t* art =
-            L"  \u2588\u2588\u2588\u2588\u2588\u2588  \u256d\u2550\u2550\u2550       \u256d\u256c\u256c\u2550    \u256d\u2550\u2550     \u256d\u2550\u2550\u2588\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2588  \u2588\u2588\u2588\u2584    \u2588 \n"
-            L"\u255a\u2588\u2588    \u2554 \u2502\u2588\u2588\u2588\u2588\u2564    \u2566\u2588\u2588\u2588\u2588\u2557 \u2502\u2588\u2588\u2588\u2588\u2584   \u2566  \u2588\u2588\u255f \u2552\u2502\u2502\u2588\u2588\u2500\u2500\u2588\u2588\u255f \u2588\u2588\u2502\u2009\u2518\u2588\u2588   \u2588 \n"
-            L"\u2591 \u2592\u2588\u2588\u255b   \u2502\u2588\u2588  \u2570\u2588\u2584  \u2502\u2588\u2588\u2502 \u2570\u256e\u256e\u2502\u2588\u2588  \u2570\u2588\u2584 \u2502 \u2562\u2588\u2588\u2502 \u2570\u2502\u2502\u2588\u2588  \u2588\u2588\u255f\u2502\u2588\u2588  \u2570\u2588 \u2588\u2588\u255f\n"
-            L"  \u2502   \u2588\u2588\u2554\u2502\u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b \u2502\u2588\u2588\u2579\u2550  \u2591\u2588\u2588\u2588\u2588\u2588\u2588\u255b\u2502 \u2562\u2588\u2588\u250f \u2502 \u2588\u2588   \u2588\u2588\u2591\u2502\u2588\u2588\u255f  \u2502\u2571\u2588\u2588\u255f\n"
-            L"\u255a\u2588\u2588\u2588\u2588\u2588\u2554\u2502\u2502 \u2566   \u2562\u2588\u2588\u255f\u2591\u2502\u2591\u2588\u2588  \u2570\u2588\u2588\u2502 \u2502\u2588\u2588\u255f \u2591 \u2591 \u2588\u2588\u2588\u2588\u2588\u2552\u2502\u2588\u2588\u2591   \u2562\u2588\u2588\u2591\n"
-            L"\u255a \u2502\u2570\u2502 \u2502 \u2502\u2502   \u2562\u2502\u2588\u2591\u2502\u2591\u2562\u2588\u2588\u2588\u257b\u2554\u2502 \u2502\u2502   \u2562\u2502\u2588\u255f \u2502 \u2502 \u2502\u2591\u2502\u2591 \u2591\u2502\u2588\u2588\u2591   \u2502 \u2502 \n"
-            L"\u2591 \u2591\u2502  \u2591 \u2591  \u2502   \u2502\u2502 \u2502\u2591  \u2502   \u2502\u2502 \u2502\u2591    \u2591 \u2502 \u2502\u2591 \u2591 \u2591  \u2591 \u2591  \u2591  \n"
-            L"\u2591  \u2591  \u2591    \u2591   \u2502    \u2591   \u2591   \u2502    \u2591      \u2591 \u2502 \u2591    \u2591     \u2591   \u2591 \n"
-            L"      \u2591        \u2591  \u2591 \u2591            \u2591  \u2591            \u2591 \u2591           \u2591 \n"
-            L"                         \u2591                                       \n\n";
-
+            L"██████  ▄▄▄       ▄▄▄▄    ▄▄▄     ▄▄▄█████▓ ▒█████   ███▄    █ \n"
+            L"▒██    ▒ ▒████▄    ▓█████▄ ▒████▄   ▓  ██▒ ▓▒▒██▒  ██▒ ██ ▀█   █ \n"
+            L"░ ▓██▄   ▒██  ▀█▄  ▒██▒ ▄██▒██  ▀█▄ ▒ ▓██░ ▒░▒██░  ██▒▓██  ▀█ ██▒\n"
+            L"▒   ██▒░██▄▄▄▄██ ▒██░█▀  ░██▄▄▄▄██░ ▓██▓ ░ ▒██   ██░▓██▒  ▐▌██▒\n"
+            L"▒██████▒▒ ▓█   ▓██▒░▓█  ▀█▓ ▓█   ▓██▒ ▒██▒ ░ ░ ████▓▒░▒██░   ▓██░\n"
+            L"▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░▒▓███▀▒ ▒▒   ▓▒█░ ▒ ░░   ░ ▒░▒░▒░ ░ ▒░   ▒ ▒ \n"
+            L"░ ░▒  ░ ░  ▒   ▒▒ ░▒░▒   ░   ▒   ▒▒ ░   ░      ░ ▒ ▒░ ░ ░░   ░ ▒░\n"
+            L"░  ░  ░    ░   ▒    ░    ░   ░   ▒    ░      ░ ░ ░ ▒     ░   ░ ░ \n"
+            L"    ░        ░  ░ ░            ░  ░            ░ ░           ░ \n"
+            L"                        ░                                       \n\n";
         DWORD w;
         WriteConsoleW(h, art, (DWORD)wcslen(art), &w, NULL);
     }
 #else
+
 
 void printASCII()
 {
@@ -100,6 +100,9 @@ void printHelp()
     printf("-brute              Try all valid keys (a coprime with m; b in [0..m-1]) and output each\n");
     printf("-enhancedBrute      ONLY FOR LITHUANIAN; Try all valid keys but also sort by phonetic coherency \n");
     printf("                    candidate plaintext with its keys.\n");
+    #ifdef USE_CUDA
+        printf("-gpu                uses the gpu to break some cyphers :)\n");
+    #endif
     printf("\n");
     printf("Notes:\n");
     printf("  > Provide -alph with the exact ordering you expect (case/diacritics included).\n");
@@ -115,8 +118,7 @@ void printHelp()
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
 }
 
-void parseArgs(Arguments *args, const int argv, const char **argc)
-{
+void parseArgs(Arguments *args, const int argv, const char **argc) {
     memset(args->flags, 0, sizeof(args->flags));
     args->decrypt = 0;
     args->decypher = 0;
@@ -128,14 +130,17 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     args->encText = NULL;
     args->out = NULL;
 
+    #ifdef USE_CUDA
+        args->gpu = 0;
+    #endif
+
     args->affineCaesar = 0;
     args->hill = 0;
     args->vigenere = 0;
-    args->enigma = 0;
     args->feistel = 0;
     args->block = 0;
-    args->stat = 0;
 
+    args->stat = 0;
     args->scytale = 0;
     args->transposition = 0;
     args->fleissner = 0;
@@ -171,7 +176,13 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
             args->enhancedBrute = 1;
             continue;
         }
-
+        
+        #ifdef USE_CUDA
+            if (strcmp(a, "-gpu") == 0) {
+                args->gpu = 1;
+                continue;
+            }
+        #endif
         if (args->decrypt){
             if (strcmp(a, "-w") == 0){
                 if (i + 1 < argv)
@@ -207,7 +218,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
             }
         }
 
-        if (args->decypher){
+        if (args->decypher) {
             if (strcmp(a, "-affineCaesar") == 0){
                 args->affineCaesar = 1;
                 continue;
@@ -298,27 +309,24 @@ void parseArgs(Arguments *args, const int argv, const char **argc)
     }
 }
 
-void decypher(Arguments *args)
-{
+void decypher(Arguments *args) {
     if (!args || !args->decypher)
         return;
 
     if (args->banner)
         printASCII();
 
-    if (args->feistel){
-        if (args->brute || !args->frag){
-            const char *res = feistelEntry(args->encText, NULL, 0);
+    if (args->feistel) {
+        if (args->brute || !args->frag) {
+            const char* res = feistelEntry(args->encText, NULL, 0);
             args->out = res;
             return;
-        }
-        else{
+        } else {
             char flag = 0;
-            char *keys = NULL;
+            char* keys = NULL;
             feistel_extract(args->frag, &flag, &keys);
-            const char *res = feistelEntry(args->encText, keys, flag);
-            if (keys)
-                free(keys);
+            const char* res = feistelEntry(args->encText, keys, flag);
+            if (keys) free(keys);
             args->out = res;
             return;
         }
@@ -413,6 +421,21 @@ void decypher(Arguments *args)
 
 }
 
+#ifdef USE_CUDA
+    #include "internals/enhancements/cuda/entry.h"
+#endif
+
+typedef void (*func_Ptr)(Arguments*);
+
+static func_Ptr executionSelectionFunc(char gpu_flag) {
+    #ifdef USE_CUDA
+        if (gpu_flag)
+            return &entryCudaEnhancement;
+    #endif
+    
+    return &decypher;
+}
+
 int main(int argc, const char **argv)
 {
     setlocale(LC_ALL, "");
@@ -464,10 +487,13 @@ int main(int argc, const char **argv)
     Arguments args = (Arguments){.minLength = 0, .maxLength = 244, .specialRegex = "[!\"#$%&'()*+,-./:;<=>?@[\\\\\\]^_`{|}~]"};
     parseArgs(&args, argc, argv);
     if (!args.alph) args.alph = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    decypher(&args);
+    executionSelectionFunc(args.gpu)(&args);
     if (args.out && args.out[0]){
-        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && !args.feistel)
+        if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && args.feistel) {
+            printf("Hi fuckass im here");
             recognEntry(args.out);
+        }
+            
         print(args.out);
     }
     return 0;

@@ -210,7 +210,6 @@ static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {
     int k = 0;
     for (int i = 0; i < n; ++i) {
         uint32_t cp = cps[i];
-        int len;
         
         if (cp <= 0x7F) {
             if (k + 1 >= cap) break;
