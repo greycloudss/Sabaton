@@ -1,3 +1,4 @@
+#ifdef USE_CUDA
 #include "entry.h"
 #include <string.h>
 #include <stdio.h>
@@ -129,3 +130,5 @@ void entryCudaEnhancement(Arguments* args) {
     //     return;
     // }
 }
+
+#endif

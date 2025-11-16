@@ -1,5 +1,7 @@
 #include "../../cyphers/feistel.h"
+#ifdef USE_CUDA
 #include <cuda_runtime.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -189,3 +191,5 @@ extern "C" const char* feistelBrute(const char* alph, const char* encText, const
     if (!bestPlain || bestRounds == 0) return "";
     return bestPlain;
 }
+
+#endif

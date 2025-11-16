@@ -53,28 +53,40 @@ WIP — core components exist but the project is actively being refined. Expect 
 
 ## Quick Build
 
-Adjust paths to match the repo layout. Example compile line used during development:
+If there is a wish to use GPU acceleration one must have in the __.vscode__ folder the __c_cpp_properties.json__ file:
+```json
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "defines": [
+                "USE_CUDA",
+                "__CUDACC__"
+            ],
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "includePath": [
+                "/usr/include",
+                "/opt/cuda/include"
+            ]
+        }
+    ],
+    "version": 4
+}
+```
+As you can see, it requires NVCC as well, thus an NVIDIA card is nescesary.  
+The special compilation for GPU feature access (.sabaton -h)can be done with:
+```bash
+make CUDA=1
+```
+This way there can be access to the GPU acceleration but only for specific cyphers. If the user wants to compile with but wants to use the CPU version, they can do it as well without the -gpu version.  
+If the user wants to compile normaly:
+```bash
+make
+```
 
-```bash
-gcc .\main.c .\internals\hash.c .\internals\cyphers\affineCaesar.c .\internals\cyphers\enigma.c .\internals\cyphers\feistel.c .\internals\cyphers\hill.c .\internals\cyphers\scytale.c .\internals\cyphers\transposition.c .\internals\cyphers\vigenere.c .\internals\cyphers\block.c .\internals\hashes\crc32.c .\internals\hashes\murmur3.c .\internals\hashes\sha1.c .\internals\hashes\sha256.c .\internals\hashes\xxhash32.c .\internals\lithuanian.c .\internals\cyphers\aes.c .\internals\cyphers\fleissner.c .\internals\cyphers\bifid.c .\internals\cyphers\stream.c .\internals\cyphers\stattests.c -lm
-```
-```bash
-gcc main.c \
-    internals/hash.c \
-    internals/cyphers/affineCaesar.c \
-    internals/hashes/crc32.c \
-    internals/hashes/murmur3.c \
-    internals/hashes/sha1.c \
-    internals/hashes/sha256.c \
-    internals/hashes/xxhash32.c \
-    internals/cyphers/hill.c \
-    internals/cyphers/vigenere.c \
-    internals/cyphers/enigma.c \
-    internals/cyphers/feistel.c \
-    internals/lithuanian.c \
-    -lm \
-    -o sabaton
-```
 
 
 You can remove or add source files depending on which modules you want to include.
