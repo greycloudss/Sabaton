@@ -21,6 +21,7 @@
 #include "internals/cyphers/bifid.h"
 #include "internals/cyphers/stream.h"
 #include "internals/cyphers/stattests.h"
+#include "internals/cyphers/stream.h"
 
 #include "internals/lithuanian.h"
 

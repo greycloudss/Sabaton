@@ -3,7 +3,7 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-extern "C" {
+    extern "C" {
 #endif
 
 const char* statEntry(const char* alph, const char* encText);

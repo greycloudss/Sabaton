@@ -21,6 +21,7 @@ all:
 		./internals/cyphers/stattests.c ./internals/cyphers/stream.c \
 		./internals/cyphers/knapsack.c \
 	     -lm -o $(OUT)
+		 
 
 clean:
 	$(CLEAN)
