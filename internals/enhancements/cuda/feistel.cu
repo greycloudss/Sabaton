@@ -33,23 +33,20 @@ __device__ void feistel_block_decrypt_dev(const int* encInt, int idx, const int*
     *outR = (unsigned char)R;
 }
 
-__global__ void feistelKernel(const int* encInt, int bigN, const int* baseKey, const int* unknownPos, int unknownCount, unsigned int totalComb, int rounds, char funcFlag, unsigned char* outPlain, int* found, int* foundKey) {
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int stride = gridDim.x * blockDim.x;
+__global__ void feistelKernel(const int* encInt, int bigN, int rounds, char funcFlag, unsigned char* outPlain, int* found, int* foundKey) {
+    unsigned long long tid = (unsigned long long) blockIdx.x * (unsigned long long) blockDim.x + (unsigned long long) threadIdx.x;
+    unsigned long long stride = (unsigned long long) gridDim.x * (unsigned long long) blockDim.x;
 
-    for (unsigned int comb = tid; comb < totalComb; comb += stride) {
+    unsigned long long totalComb = 1ULL;
+    for (int i = 0; i < rounds; ++i) totalComb *= 256ULL;
+
+    for (unsigned long long comb = tid; comb < totalComb; comb += stride) {
         if (atomicAdd(found, 0) != 0) return;
 
-        int keyBytes[3];
-        keyBytes[0] = baseKey[0];
-        keyBytes[1] = baseKey[1];
-        keyBytes[2] = baseKey[2];
-
-        unsigned int tmp = comb;
-        for (int u = 0; u < unknownCount; ++u) {
-            int pos = unknownPos[u];
-            int val = (int)(tmp & 0xFFu);
-            keyBytes[pos] = val;
+        int keyBytes[4] = {0, 0, 0, 0};
+        unsigned long long tmp = comb;
+        for (int j = 0; j < rounds; ++j) {
+            keyBytes[j] = (int)(tmp & 0xFFULL);
             tmp >>= 8;
         }
 
@@ -97,8 +94,47 @@ static char* ensure_plain_buf(size_t len) {
     return g_plain_buf;
 }
 
+static int gpu_bruteforce_for_rounds(const int* encInt, int bigN, int rounds, char funcFlag, int* outKey, unsigned char* outPlain) {
+    int* d_encInt = NULL;
+    unsigned char* d_outPlain = NULL;
+    int* d_found = NULL;
+    int* d_foundKey = NULL;
+
+    cudaMalloc((void**)&d_encInt, bigN * sizeof(int));
+    cudaMalloc((void**)&d_outPlain, bigN * sizeof(unsigned char));
+    cudaMalloc((void**)&d_found, sizeof(int));
+    cudaMalloc((void**)&d_foundKey, 4 * sizeof(int));
+
+    cudaMemcpy(d_encInt, encInt, bigN * sizeof(int), cudaMemcpyHostToDevice);
+    int zero = 0;
+    cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
+
+    int threads = 256;
+    int blocks = 256;
+    feistelKernel<<<blocks, threads>>>(d_encInt, bigN, rounds, funcFlag, d_outPlain, d_found, d_foundKey);
+    cudaDeviceSynchronize();
+
+    int h_found = 0;
+    cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
+
+    if (h_found) {
+        cudaMemcpy(outPlain, d_outPlain, bigN * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+        int tmpKey[4] = {0, 0, 0, 0};
+        cudaMemcpy(tmpKey, d_foundKey, 4 * sizeof(int), cudaMemcpyDeviceToHost);
+        for (int i = 0; i < rounds; ++i) outKey[i] = tmpKey[i];
+    }
+
+    cudaFree(d_encInt);
+    cudaFree(d_outPlain);
+    cudaFree(d_found);
+    cudaFree(d_foundKey);
+
+    return h_found;
+}
+
 extern "C" const char* feistelBrute(const char* alph, const char* encText, const char* frag) {
     (void)alph;
+    (void)frag;
 
     int bigN = 0;
     int* encInt = parse_frag_array(encText, &bigN);
@@ -107,117 +143,49 @@ extern "C" const char* feistelBrute(const char* alph, const char* encText, const
         return "";
     }
 
-    int keyInput[3] = { -1, -1, -1 };
-    int keyCount = 3;
-
-    if (frag && *frag) {
-        int n = 0;
-        int* parsed = parse_frag_array(frag, &n);
-        if (parsed && n > 0) {
-            if (n > 3) n = 3;
-            keyCount = n;
-            for (int i = 0; i < n; ++i) {
-                keyInput[i] = parsed[i];
-            }
-        }
-        if (parsed) free(parsed);
+    unsigned char* tmpPlain = (unsigned char*)malloc((size_t)bigN);
+    if (!tmpPlain) {
+        free(encInt);
+        return "";
     }
-
-    int baseKey[3] = { 0, 0, 0 };
-    int unknownPos[3];
-    int unknownCount = 0;
-
-    for (int i = 0; i < keyCount; ++i) {
-        if (keyInput[i] >= 0 && keyInput[i] <= 255) {
-            baseKey[i] = keyInput[i] & 0xFF;
-        } else {
-            baseKey[i] = 0;
-            unknownPos[unknownCount++] = i;
-        }
-    }
-    for (int i = keyCount; i < 3; ++i) {
-        baseKey[i] = 0;
-    }
-
-    unsigned int totalComb = 1;
-    for (int i = 0; i < unknownCount; ++i) {
-        totalComb *= 256u;
-    }
-    if (totalComb == 0) totalComb = 1;
-
-    int* d_encInt = NULL;
-    int* d_baseKey = NULL;
-    int* d_unknownPos = NULL;
-    unsigned char* d_outPlain = NULL;
-    int* d_found = NULL;
-    int* d_foundKey = NULL;
-
-    cudaMalloc((void**)&d_encInt, bigN * sizeof(int));
-    cudaMalloc((void**)&d_baseKey, 3 * sizeof(int));
-    cudaMalloc((void**)&d_unknownPos, 3 * sizeof(int));
-    cudaMalloc((void**)&d_outPlain, bigN * sizeof(unsigned char));
-    cudaMalloc((void**)&d_found, sizeof(int));
-    cudaMalloc((void**)&d_foundKey, 3 * sizeof(int));
-
-    cudaMemcpy(d_encInt, encInt, bigN * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_baseKey, baseKey, 3 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_unknownPos, unknownPos, 3 * sizeof(int), cudaMemcpyHostToDevice);
-    int zero = 0;
-    cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
 
     char funcFlag = g_funcFlag;
+    char* bestPlain = NULL;
+    int bestRounds = 0;
 
-    int threads = 256;
-    int blocks = 256;
-    feistelKernel<<<blocks, threads>>>(d_encInt, bigN, d_baseKey, d_unknownPos, unknownCount, totalComb, keyCount, funcFlag, d_outPlain, d_found, d_foundKey);
-    cudaDeviceSynchronize();
+    for (int rounds = 1; rounds <= 4; ++rounds) {
+        int key[4] = {0, 0, 0, 0};
+        int found = gpu_bruteforce_for_rounds(encInt, bigN, rounds, funcFlag, key, tmpPlain);
+        if (!found) continue;
 
-    int h_found = 0;
-    int h_foundKey[3] = { 0, 0, 0 };
-    cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
-    if (h_found) {
-        cudaMemcpy(h_foundKey, d_foundKey, 3 * sizeof(int), cudaMemcpyDeviceToHost);
-    }
-
-    const char* ret = "";
-
-    if (h_found) {
-        char* buf = ensure_plain_buf((size_t)bigN);
-        if (buf) {
-            unsigned char* tmpPlain = (unsigned char*)malloc((size_t)bigN);
-            if (tmpPlain) {
-                cudaMemcpy(tmpPlain, d_outPlain, bigN * sizeof(unsigned char), cudaMemcpyDeviceToHost);
-                for (int i = 0; i < bigN; ++i) {
-                    unsigned char c = tmpPlain[i];
-                    if (c == '\0') c = ' ';
-                    buf[i] = (char)c;
+        char fname[64];
+        int w = snprintf(fname, sizeof(fname), "feistel-keys-%d.txt", rounds);
+        if (w > 0 && w < (int)sizeof(fname)) {
+            FILE* f = fopen(fname, "a");
+            if (f) {
+                for (int i = 0; i < rounds; ++i) {
+                    fprintf(f, "%d%s", key[i], (i + 1 < rounds) ? " " : "\n");
                 }
-                buf[bigN] = '\0';
-                free(tmpPlain);
-                ret = buf;
-            }
-
-            char fname[64];
-            int w = snprintf(fname, sizeof(fname), "feistel-keys-%d.txt", keyCount);
-            if (w > 0 && w < (int)sizeof(fname)) {
-                FILE* f = fopen(fname, "a");
-                if (f) {
-                    for (int i = 0; i < keyCount; ++i) {
-                        fprintf(f, "%d%s", h_foundKey[i], (i + 1 < keyCount) ? " " : "\n");
-                    }
-                    fclose(f);
-                }
+                fclose(f);
             }
         }
+
+        char* buf = ensure_plain_buf((size_t)bigN);
+        if (buf) {
+            for (int i = 0; i < bigN; ++i) {
+                unsigned char c = tmpPlain[i];
+                if (c == '\0') c = ' ';
+                buf[i] = (char)c;
+            }
+            buf[bigN] = '\0';
+            bestPlain = buf;
+            bestRounds = rounds;
+        }
     }
-
-    cudaFree(d_encInt);
-    cudaFree(d_baseKey);
-    cudaFree(d_unknownPos);
-    cudaFree(d_outPlain);
-    cudaFree(d_found);
-    cudaFree(d_foundKey);
+    print("Feistel brute-force completed, the output stdout output might be wrong, instead - check the keys in the .txt files.\n");
     free(encInt);
+    free(tmpPlain);
 
-    return ret;
+    if (!bestPlain || bestRounds == 0) return "";
+    return bestPlain;
 }
