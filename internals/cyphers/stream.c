@@ -1,6 +1,6 @@
 //============================A1/5 Not DONE=======================================
 #include "stream.h"
-#include "../lithuanian.h"
+#include "../enhancements/lith/lithuanian.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,7 +68,10 @@ static char* decrypt_with_variant(const int* cbytes, int n, uint8_t taps, uint8_
         if (alph) {
             int ok = 0;
             for (const char* q = alph; *q; ++q) {
-                if ((unsigned char)*q == p) { ok = 1; break; }
+                if ((unsigned char)*q == p) {
+                    ok = 1;
+                    break;
+                }
             }
             out[i] = ok ? (char)p : '?';
         } else {
@@ -117,7 +120,10 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
 
     int bigN = 0;
     int* cbytes = parse_frag_array(encText, &bigN);
-    if (!cbytes || bigN <= 0) { if (cbytes) free(cbytes); return strdup("[invalid ciphertext format]"); }
+    if (!cbytes || bigN <= 0) {
+        if (cbytes) free(cbytes);
+        return strdup("[invalid ciphertext format]");
+    }
     const char* s = frag;
     if (strncmp(s, "lfsr:", 6) == 0) s += 6;
     char tmp[128];
@@ -125,24 +131,39 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
     char* tokN = strtok(tmp, ";");
     char* tok2 = strtok(NULL, ";");
 
-    if (!tokN) { free(cbytes); return strdup("[invalid frag]"); }
+    if (!tokN) {
+        free(cbytes);
+        return strdup("[invalid frag]");
+    }
     int N = strtol(tokN, NULL, 10);
-    if (N != 8) { free(cbytes); return strdup("[unsupported LFSR size; only 8 supported]"); }
+    if (N != 8) {
+        free(cbytes);
+        return strdup("[unsupported LFSR size; only 8 supported]");
+    }
 
     int sem_count = 0;
     for (const char* p = frag; *p; ++p) if (*p == ';') ++sem_count;
 
     if (sem_count >= 2) {
         const char* firstsemi = strchr(frag, ';');
-        if (!firstsemi) { free(cbytes); return strdup("[invalid frag]"); }
+        if (!firstsemi) {
+            free(cbytes);
+            return strdup("[invalid frag]");
+        }
         char tail[128];
         strncpy(tail, firstsemi + 1, sizeof(tail)-1); tail[sizeof(tail)-1] = '\0';
         char* part1 = strtok(tail, ";");
         char* part2 = strtok(NULL, ";");
-        if (!part1 || !part2) { free(cbytes); return strdup("[invalid taps/state]"); }
+        if (!part1 || !part2) {
+            free(cbytes);
+            return strdup("[invalid taps/state]");
+        }
         int taps = parse_int_token(part1);
         int state = parse_int_token(part2);
-        if (taps < 0 || state < 0) { free(cbytes); return strdup("[invalid taps/state]"); }
+        if (taps < 0 || state < 0) {
+            free(cbytes);
+            return strdup("[invalid taps/state]");
+        }
 
         const char* allowed_alph = (alph && *alph) ? alph : "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
         char* chosen = NULL;
@@ -154,7 +175,12 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
                                                     shift_right, msb_first, allowed_alph);
                     if (!dec) continue;
                     int ok = 1;
-                    for (int i = 0; i < bigN; ++i) if (dec[i] == '?') { ok = 0; break; }
+                    for (int i = 0; i < bigN; ++i) {
+                        if (dec[i] == '?') {
+                            ok = 0;
+                            break;
+                        }
+                    }
                     if (ok) chosen = dec;
                     else free(dec);
                 }
@@ -163,7 +189,10 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
         free(cbytes);
         if (!chosen) return strdup("[decryption failed or no variant produced fully valid plaintext]");
         static char* static_out = NULL;
-        if (static_out) { free(static_out); static_out = NULL; }
+        if (static_out) {
+            free(static_out);
+            static_out = NULL;
+        }
         static_out = strdup(chosen);
         free(chosen);
         return static_out;
@@ -175,16 +204,25 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
         static char fname[128];
         const char* base = "stream_lfsr-";
         int p = 0;
-        while (base[p] && p < (int)sizeof(fname)-1) { fname[p] = base[p]; ++p; }
+        while (base[p] && p < (int)sizeof(fname)-1) {
+            fname[p] = base[p];
+            ++p;
+        }
         fname[p] = '\0';
         if (!append_time_txt(fname, (int)sizeof fname)) {
             const char* fb = "unknown.txt";
             int i = 0;
-            while (fb[i] && p + i < (int)sizeof(fname)-1) { fname[p+i] = fb[i]; ++i; }
+            while (fb[i] && p + i < (int)sizeof(fname)-1) {
+                fname[p+i] = fb[i];
+                ++i;
+            }
             fname[p+i] = '\0';
         }
         FILE* f = fopen(fname, "wb");
-        if (!f) { free(cbytes); return strdup("[error opening output file]"); }
+        if (!f) {
+            free(cbytes);
+            return strdup("[error opening output file]");
+        }
 
         const char* allowed_alph = (alph && *alph) ? alph : "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 
@@ -205,12 +243,20 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
                                 if ((int)klen > bigN) okpref = 0;
                                 else {
                                     for (size_t z = 0; z < klen; ++z) {
-                                        if (dec[z] != known_prefix[z]) { okpref = 0; break; }
+                                        if (dec[z] != known_prefix[z]) {
+                                            okpref = 0;
+                                            break;
+                                        }
                                     }
                                 }
                                 if (okpref) {
                                     int ok = 1;
-                                    for (int i = 0; i < bigN; ++i) if (dec[i] == '?') { ok = 0; break; }
+                                    for (int i = 0; i < bigN; ++i) {
+                                        if (dec[i] == '?') {
+                                            ok = 0;
+                                            break;
+                                        }
+                                    }
                                     if (ok) {
                                         write_candidate(f, (uint8_t)taps_used, (uint8_t)state, variant_id, dec);
                                         found_any = 1;
@@ -218,7 +264,12 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
                                 }
                             } else {
                                 int ok = 1;
-                                for (int i = 0; i < bigN; ++i) if (dec[i] == '?') { ok = 0; break; }
+                                for (int i = 0; i < bigN; ++i) {
+                                    if (dec[i] == '?') {
+                                        ok = 0;
+                                        break;
+                                    }
+                                }
                                 if (ok) {
                                     write_candidate(f, (uint8_t)taps_used, (uint8_t)state, variant_id, dec);
                                     found_any = 1;
@@ -234,7 +285,10 @@ const char* streamEntry(const char* alph, const char* encText, const char* frag)
         free(cbytes);
         if (!found_any) return strdup("[no candidate found]");
         static char* static_fname = NULL;
-        if (static_fname) { free(static_fname); static_fname = NULL; }
+        if (static_fname) {
+            free(static_fname);
+            static_fname = NULL;
+        }
         static_fname = strdup(fname);
         return static_fname;
     }

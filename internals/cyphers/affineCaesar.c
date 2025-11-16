@@ -65,7 +65,10 @@ const char* pieceAffineCaesar(const char* alph, const char* encText, const char*
 
         int ok = 1;
         for (int t = 0; t < k && t < n; ++t) {
-            if (outcp[t] != K[t]) { ok = 0; break; }
+            if (outcp[t] != K[t]) {
+                ok = 0;
+                break;
+            }
         }
         if (ok && bytes > 0) return out;
     }
@@ -83,21 +86,28 @@ const char* bruteAffineCaesar(const char* alph, const char* encText) {
     static char fname[128];
     const char* base = "affineCaesarBrute-";
     int p = 0;
-    while (base[p] && p < (int)sizeof(fname) - 1) { fname[p] = base[p]; ++p; }
+
+    while (base[p] && p < (int)sizeof(fname) - 1) {
+        fname[p] = base[p];
+        ++p;
+    }
+    
     fname[p] = '\0';
     if (!append_time_txt(fname, (int)sizeof fname)) {
         const char* fb = "unknown.txt";
         int i = 0;
-        while (fb[i] && p + i < (int)sizeof(fname) - 1) { fname[p + i] = fb[i]; ++i; }
-        fname[p + i] = '\0';
+        while (fb[i] && p + i < (int)sizeof(fname) - 1) {
+            fname[p + i] = fb[i];
+            ++i;
+        }
+            fname[p + i] = '\0';
     }
 
     FILE* fptr = fopen(fname, "wb");
     if (!fptr) return "";
 
     for (int a = 1; a < m; ++a) {
-        int x, y;
-        if (egcd(a, m, &x, &y) != 1) continue;
+        if (gcd(a, m) != 1) continue;
         for (int b = 0; b < m; ++b) {
             char abuf[16], bbuf[16];
             int al, bl;

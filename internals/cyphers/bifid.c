@@ -8,7 +8,10 @@ static char* build_key_alph(const char* alph, const char* keyword) {
     int used_len = 0;
     int used_mask_cap = (m + 7) / 8;
     unsigned char* used = calloc(used_mask_cap, 1);
-    if (!used) { free(key); return NULL; }
+    if (!used) {
+        free(key);
+        return NULL;
+    }
 
     auto_mark:
     (void)0;
@@ -70,7 +73,12 @@ static void build_alph_to_key_map(const char* alph, const char* key_alph, int n,
     for (int i = 0; i < m; ++i) {
         char ch = alph[i];
         int pos = -1;
-        for (int k = 0; k < n * n; ++k) if (key_alph[k] == ch) { pos = k; break; }
+        for (int k = 0; k < n * n; ++k) {
+            if (key_alph[k] == ch) {
+                pos = k;
+                break;
+            }
+        }
         map[i] = pos;
     }
 }
@@ -80,7 +88,11 @@ static char* bifid_decrypt_block(const int* filtered_idx, int len, const char* k
     int L = len;
     int *rows = malloc(sizeof(int) * L);
     int *cols = malloc(sizeof(int) * L);
-    if (!rows || !cols) { free(rows); free(cols); return NULL; }
+    if (!rows || !cols) {
+        free(rows);
+        free(cols);
+        return NULL;
+    }
     for (int i = 0; i < L; ++i) {
         int pos = filtered_idx[i];
         rows[i] = pos / n;
@@ -88,7 +100,12 @@ static char* bifid_decrypt_block(const int* filtered_idx, int len, const char* k
     }
 
     int *S = malloc(sizeof(int) * (2 * L));
-    if (!S) { free(rows); free(cols); free(S); return NULL; }
+    if (!S) {
+        free(rows);
+        free(cols);
+        free(S);
+        return NULL;
+    }
     for (int i = 0; i < L; ++i) {
         S[2 * i] = rows[i];
         S[2 * i + 1] = cols[i];
@@ -96,11 +113,25 @@ static char* bifid_decrypt_block(const int* filtered_idx, int len, const char* k
 
     int *R = malloc(sizeof(int) * L);
     int *C = malloc(sizeof(int) * L);
-    if (!R || !C) { free(rows); free(cols); free(S); free(R); free(C); return NULL; }
+    if (!R || !C) {
+        free(rows);
+        free(cols);
+        free(S);
+        free(R);
+        free(C);
+        return NULL;
+    }
     for (int i = 0; i < L; ++i) R[i] = S[i];
     for (int i = 0; i < L; ++i) C[i] = S[L + i];
     char* out = malloc((size_t)L + 1);
-    if (!out) { free(rows); free(cols); free(S); free(R); free(C); return NULL; }
+    if (!out) {
+        free(rows);
+        free(cols);
+        free(S);
+        free(R);
+        free(C);
+        return NULL;
+    }
     for (int i = 0; i < L; ++i) {
         int rr = R[i];
         int cc = C[i];
@@ -128,7 +159,10 @@ const char* bifidEntry(const char* alph, const char* encText, const char* frag) 
         if (semi) {
             int kwlen = (int)(semi - frag);
             keyword = malloc((size_t)kwlen + 1);
-            if (keyword) { memcpy(keyword, frag, kwlen); keyword[kwlen] = '\0'; }
+            if (keyword) {
+                memcpy(keyword, frag, kwlen);
+                keyword[kwlen] = '\0';
+            }
             char* after = (char*)(semi + 1);
             long p = strtol(after, NULL, 10);
             if (p > 0) period = (int)p;
@@ -148,18 +182,32 @@ const char* bifidEntry(const char* alph, const char* encText, const char* frag) 
     if (!key_alph) return strdup("[oom]");
 
     int *alph_to_key = malloc(sizeof(int) * m);
-    if (!alph_to_key) { free(key_alph); return strdup("[oom]"); }
+    if (!alph_to_key) {
+        free(key_alph);
+        return strdup("[oom]");
+    }
     for (int i = 0; i < m; ++i) {
         char ch = alph[i];
         int pos = -1;
-        for (int k = 0; k < n * n; ++k) if (key_alph[k] == ch) { pos = k; break; }
+        for (int k = 0; k < n * n; ++k) {
+            if (key_alph[k] == ch) {
+                pos = k;
+                break;
+            }
+        }
         alph_to_key[i] = pos;
     }
 
     int cap = (int)strlen(encText) + 4;
     int* map_idx = malloc(sizeof(int) * cap);
     char* chars = malloc((size_t)cap);
-    if (!map_idx || !chars) { free(key_alph); free(alph_to_key); free(map_idx); free(chars); return strdup("[oom]"); }
+    if (!map_idx || !chars) {
+        free(key_alph);
+        free(alph_to_key);
+        free(map_idx);
+        free(chars);
+        return strdup("[oom]");
+    }
     int text_len = 0;
     for (const unsigned char* p = (const unsigned char*)encText; *p && text_len < cap; ++p) {
         char ch = (char)*p;
@@ -177,12 +225,22 @@ const char* bifidEntry(const char* alph, const char* encText, const char* frag) 
 
     free(alph_to_key);
 
-    if (text_len == 0) { free(key_alph); free(map_idx); free(chars); return strdup("[no text]"); }
+    if (text_len == 0) {
+        free(key_alph);
+        free(map_idx);
+        free(chars);
+        return strdup("[no text]");
+    }
 
     if (period <= 0) period = text_len;
 
     char* out = malloc((size_t)text_len + 1);
-    if (!out) { free(key_alph); free(map_idx); free(chars); return strdup("[oom]"); }
+    if (!out) {
+        free(key_alph);
+        free(map_idx);
+        free(chars);
+        return strdup("[oom]");
+    }
 
     int pos = 0;
 
@@ -207,8 +265,12 @@ const char* bifidEntry(const char* alph, const char* encText, const char* frag) 
         if (blk_len > 0) {
             char* decrypted_block = bifid_decrypt_block(block_keypos, blk_len, key_alph, n);
             if (!decrypted_block) {
-                free(block_keypos); free(block_positions);
-                free(key_alph); free(map_idx); free(chars); free(out);
+                free(block_keypos);
+                free(block_positions);
+                free(key_alph);
+                free(map_idx);
+                free(chars);
+                free(out);
                 return strdup("[decryption failed]");
             }
             for (int k = 0; k < blk_len; ++k) {
@@ -230,7 +292,10 @@ const char* bifidEntry(const char* alph, const char* encText, const char* frag) 
     free(chars);
 
     static char* static_out = NULL;
-    if (static_out) { free(static_out); static_out = NULL; }
+    if (static_out) {
+        free(static_out);
+        static_out = NULL;
+    }
     static_out = strdup(out);
     free(out);
     return static_out;

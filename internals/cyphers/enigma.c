@@ -12,7 +12,10 @@ char* runSimpleEnigma(const char* text, const char* alph,
     for (size_t k = 0; k < len; k++) {
         char c = text[k];
         const char* p = strchr(alph, c);
-        if (!p) { result[k] = c; continue; }
+        if (!p) {
+            result[k] = c;
+            continue;
+        }
         int index = (int)(p - alph);
 
         if (!decrypt) {
@@ -49,7 +52,10 @@ char* runReflectorEnigma(const char* text, const char* alph,
     for (size_t k = 0; k < len; k++) {
         char c = text[k];
         const char* p = strchr(alph, c);
-        if (!p) { result[k] = c; continue; }
+        if (!p) {
+            result[k] = c;
+            continue;
+        }
         int index = (int)(p - alph);
 
         int step1 = (rotor1[(index + pos1) % N] - pos1 + N) % N;
@@ -70,7 +76,10 @@ char* runReflectorEnigma(const char* text, const char* alph,
 
 const char* enigmaEntry(const char* alph, const char* encText, const char* frag) {
     static char* output = NULL;
-    if (output) { free(output); output = NULL; }
+    if (output) {
+        free(output);
+        output = NULL;
+    }
 
     int rotor1[256], rotor2[256], reflector[256];
     int r1Count = 0, r2Count = 0, refCount = 0;
@@ -141,7 +150,10 @@ const char* enigmaEntry(const char* alph, const char* encText, const char* frag)
                     if (strlen(plainFrag)==1) {
                         char first=0;
                         for (size_t i=0; cand[i]; i++) {
-                            if (strchr(alph, cand[i])) { first=cand[i]; break; }
+                            if (strchr(alph, cand[i])) {
+                                first = cand[i];
+                                break;
+                            }
                         }
                         ok = (first == plainFrag[0]);
                     } else {

@@ -104,9 +104,7 @@ static int generateKeys(const int Kstart[4], int rounds, int p, int a, int b, in
 
 
 
-static int encryptRound(const int* block, const int* key, const int* T,
-                         int a, int b, int p, int* out)
-{
+static int encryptRound(const int* block, const int* key, const int* T, int a, int b, int p, int* out) {
     if (!block || !key || !T || !out) return 0;
 
     // Layer 1 
@@ -123,7 +121,7 @@ static int encryptRound(const int* block, const int* key, const int* T,
     }
 
     // Layer 2 
-    { int tmp = out[2]; out[2] = out[3]; out[3] = tmp; }
+    swap_int(&out[2], &out[3]);
 
     // Layer 3 
     for (int i = 0; i < 2; ++i) {
@@ -144,8 +142,7 @@ static int encryptRound(const int* block, const int* key, const int* T,
 
 
 
-static int decryptRound(const int* block, const int* key, const int* tInv,
-                          int a, int b, int p, int* out)
+static int decryptRound(const int* block, const int* key, const int* tInv, int a, int b, int p, int* out)
 {
     //layer 4 all the way down to layer 1
     if (!block || !key || !tInv || !out) return 0;
@@ -195,20 +192,23 @@ static int decryptRound(const int* block, const int* key, const int* tInv,
 
 
 
-static int encryptFull(const int in[4], const int Kstart[4],
-                        int rounds, int p, int a, int b,
-                        const int T[4], int out[4])
-{
+static int encryptFull(const int in[4], const int Kstart[4], int rounds, int p, int a, int b, const int T[4], int out[4]) {
     if (rounds <= 0) return 0;
     int (*keys)[4] = malloc(rounds * 4 * sizeof(int));
     if (!keys) return 0;
-    if (!generateKeys(Kstart, rounds, p, a, b, keys)) { free(keys); return 0; }
+    if (!generateKeys(Kstart, rounds, p, a, b, keys)) {
+        free(keys);
+        return 0;
+    }
 
     int curIn[4], tmp[4];
     memcpy(curIn, in, 4 * sizeof(int));
 
     for (int r = 0; r < rounds; ++r) {
-        if (!encryptRound(curIn, keys[r], T, a, b, p, tmp)) { free(keys); return 0; }
+        if (!encryptRound(curIn, keys[r], T, a, b, p, tmp)) {
+            free(keys);
+            return 0;
+        }
         memcpy(curIn, tmp, 4 * sizeof(int));
     }
     memcpy(out, curIn, 4 * sizeof(int));
@@ -226,16 +226,25 @@ static int decryptFull(const int in[4], const int Kstart[4],
     if (rounds <= 0) return 0;
     int (*keys)[4] = malloc(rounds * 4 * sizeof(int));
     if (!keys) return 0;
-    if (!generateKeys(Kstart, rounds, p, a, b, keys)) { free(keys); return 0; }
+    if (!generateKeys(Kstart, rounds, p, a, b, keys)) {
+        free(keys);
+        return 0;
+    }
 
     int tInv[4];
-    if (!inv2x2mod(T, p, tInv)) { free(keys); return 0; }
+    if (!inv2x2mod(T, p, tInv)) {
+        free(keys);
+        return 0;
+    }
 
     int curIn[4], tmp[4];
     memcpy(curIn, in, 4 * sizeof(int));
 
     for (int r = rounds - 1; r >= 0; --r) {
-        if (!decryptRound(curIn, keys[r], tInv, a, b, p, tmp)) { free(keys); return 0; }
+        if (!decryptRound(curIn, keys[r], tInv, a, b, p, tmp)) {
+            free(keys);
+            return 0;
+        }
         memcpy(curIn, tmp, 4 * sizeof(int));
     }
 
@@ -247,9 +256,7 @@ static int decryptFull(const int in[4], const int Kstart[4],
 
 
 
-char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b,
-                  const int T[4], const int K1[4], int rounds)
-{
+char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b, const int T[4], const int K1[4], int rounds) {
     if (!cipher || nBlocks <= 0 || rounds <= 0) 
         return NULL;
 
@@ -268,15 +275,13 @@ char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b,
     }
 
     for (size_t i = 0; i < total; ++i) {
-    out[i] = mod(out[i], p); 
-    if (out[i] >= 65 && out[i] <= 90) continue;
-    out[i] = 65 + (out[i] % 26);
-}
-
+        out[i] = mod(out[i], p); 
+        if (out[i] >= 65 && out[i] <= 90) continue;
+        out[i] = 65 + (out[i] % 26);
+    }
 
     char *text = numbersToBytes(out, total);
     free(out);
-
 
     return text;
 }
@@ -285,11 +290,7 @@ char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b,
 
 
 
-const char* mitmHash(const int key1_template[4], const int key2_template[4],
-                      const int message[4], const int cipher[4],
-                      int p, int a, int b, const int T[4],
-                      int K1max, int K2max, int rounds)
-{
+const char* mitmHash(const int key1_template[4], const int key2_template[4], const int message[4], const int cipher[4], int p, int a, int b, const int T[4], int K1max, int K2max, int rounds) {
     HashTable *ht = hashCreate((size_t)K1max);
 
     int k1_unknown_count = 0, k2_unknown_count = 0;
@@ -385,7 +386,10 @@ const char* mitmHashSingle(
 
 const char* aesEntry(const char* alphabet, const char* cipherText, const char* fragment) {
     static char* output = NULL;
-    if (output) { free(output); output = NULL; }
+    if (output) {
+        free(output);
+        output = NULL;
+    }
 
     int p = 0, a = 0, b = 0;
     int T[4] = {0}, Tcount = 0;
@@ -452,7 +456,10 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
     }
     else if (hasSingleKey && hasBlocks) {
         for (int i = 0; i < 4; ++i) {
-            if (key[i] == -1) { useMITM = 1; break; }
+            if (key[i] == -1) {
+                useMITM = 1;
+                break;
+            }
         }
     }
 

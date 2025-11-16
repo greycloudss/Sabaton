@@ -75,7 +75,14 @@ static void i32_to_str(int v, char* out, int* len) {
     unsigned int u = (v < 0) ? (unsigned int)(-v) : (unsigned int)v;
     char rev[16];
     int n = 0;
-    if (u == 0) { rev[n++] = '0'; } else { while (u) { rev[n++] = (char)('0' + (u % 10)); u /= 10; } }
+    if (u == 0) {
+        rev[n++] = '0';
+    } else {
+        while (u) {
+            rev[n++] = (char)('0' + (u % 10));
+            u /= 10;
+        }
+    }
     int k = 0;
     if (v < 0) out[k++] = '-';
     for (int i = 0; i < n; ++i) out[k++] = rev[n - 1 - i];
@@ -107,7 +114,10 @@ static void largeWrite(const char* fname) {
 
 static int utf8_decode_one(const char* s, uint32_t* cp) {
     unsigned char c0 = (unsigned char)s[0];
-    if (c0 < 0x80) { *cp = c0; return c0 ? 1 : 0; }
+    if (c0 < 0x80) {
+        *cp = c0;
+        return c0 ? 1 : 0;
+    }
     if ((c0 >> 5) == 0x6) {
         unsigned char c1 = (unsigned char)s[1];
         if ((c1 & 0xC0) != 0x80) return 0;
@@ -130,10 +140,25 @@ static int utf8_decode_one(const char* s, uint32_t* cp) {
 }
 
 static int utf8_encode_one(uint32_t cp, char out[4]) {
-    if (cp <= 0x7F) { out[0] = (char)cp; return 1; }
-    if (cp <= 0x7FF) { out[0] = (char)(0xC0 | (cp >> 6)); out[1] = (char)(0x80 | (cp & 0x3F)); return 2; }
-    if (cp <= 0xFFFF) { out[0] = (char)(0xE0 | (cp >> 12)); out[1] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[2] = (char)(0x80 | (cp & 0x3F)); return 3; }
-    out[0] = (char)(0xF0 | (cp >> 18)); out[1] = (char)(0x80 | ((cp >> 12) & 0x3F)); out[2] = (char)(0x80 | ((cp >> 6) & 0x3F)); out[3] = (char)(0x80 | (cp & 0x3F));
+    if (cp <= 0x7F) {
+        out[0] = (char)cp;
+        return 1;
+    }
+    if (cp <= 0x7FF) {
+        out[0] = (char)(0xC0 | (cp >> 6));
+        out[1] = (char)(0x80 | (cp & 0x3F));
+        return 2;
+    }
+    if (cp <= 0xFFFF) {
+        out[0] = (char)(0xE0 | (cp >> 12));
+        out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (cp & 0x3F));
+        return 3;
+    }
+    out[0] = (char)(0xF0 | (cp >> 18));
+    out[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+    out[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+    out[3] = (char)(0x80 | (cp & 0x3F));
     return 4;
 }
 
@@ -150,16 +175,61 @@ static int utf8_to_u32(const char* s, uint32_t* out, int cap) {
 }
 
 static int u32_index_of(const uint32_t* alph, int m, uint32_t cp) {
-    for (int i = 0; i < m; ++i) if (alph[i] == cp) return i;
-    return -1;
+    static uint32_t* keys = NULL;
+    static int* values = NULL;
+    static int capacity = 0;
+    static int last_m = -1;
+    
+    if (last_m != m) {
+        if (keys) free(keys);
+        if (values) free(values);
+        
+        capacity = 1;
+        while (capacity < m * 2) capacity *= 2;
+        
+        keys = (uint32_t*)calloc((size_t)capacity, sizeof(uint32_t));
+        values = (int*)malloc((size_t)capacity * sizeof(int));
+        
+        for (int i = 0; i < m; i++) {
+            unsigned int hash = alph[i] % capacity;
+            while (keys[hash] != 0) hash = (hash + 1) % capacity;
+            
+            keys[hash] = alph[i];
+            values[hash] = i;
+        }
+        last_m = m;
+    }
+    
+    unsigned int hash = cp % capacity;
+    while (keys[hash] != 0 && keys[hash] != cp) hash = (hash + 1) % capacity;
+    
+    return (keys[hash] == cp) ? values[hash] : -1;
 }
 
 static int u32_to_utf8(const uint32_t* cps, int n, char* out, int cap) {
     int k = 0;
     for (int i = 0; i < n; ++i) {
-        char buf[4]; int len = utf8_encode_one(cps[i], buf);
-        if (k + len >= cap) break;
-        for (int j = 0; j < len; ++j) out[k++] = buf[j];
+        uint32_t cp = cps[i];
+        
+        if (cp <= 0x7F) {
+            if (k + 1 >= cap) break;
+            out[k++] = (char)cp;
+        } else if (cp <= 0x7FF) {
+            if (k + 2 >= cap) break;
+            out[k++] = (char)(0xC0 | (cp >> 6));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0xFFFF) {
+            if (k + 3 >= cap) break;
+            out[k++] = (char)(0xE0 | (cp >> 12));
+            out[k++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        } else {
+            if (k + 4 >= cap) break;
+            out[k++] = (char)(0xF0 | (cp >> 18));
+            out[k++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+            out[k++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[k++] = (char)(0x80 | (cp & 0x3F));
+        }
     }
     if (k < cap) out[k] = '\0';
     return k;
@@ -190,8 +260,14 @@ static int parse_frag(const char* s, int* out, int cap){
     int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
     while (s[i]){
         char c = s[i++];
-        if (c == '-' && !innum){ sign = -1; innum = 1; acc = 0; }
-        else if (c >= '0' && c <= '9'){ acc = acc*10 + (c - '0'); innum = 1; }
+        if (c == '-' && !innum) {
+            sign = -1;
+            innum = 1;
+            acc = 0;
+        } else if (c >= '0' && c <= '9') {
+            acc = acc*10 + (c - '0');
+            innum = 1;
+        }
         else if (c == ',' || c == ' ' || c == '\t' || c == '\n' || c == '\r'){
             if (innum){
                 if (n < cap) out[n++] = sign*acc;
@@ -212,23 +288,23 @@ static int* parse_frag_array(const char* s, int* out_n){
     int n = 0, i = 0, sign = 1, acc = 0, innum = 0;
     while (s[i]){
         char c = s[i++];
-        if (c == '?'){
-            if (innum){
+        if (c == '?') {
+            if (innum) {
                 n++;
                 innum = 0;
                 sign = 1;
                 acc = 0;
             }
             n++;
-        } else if (c == '-' && !innum){
+        } else if (c == '-' && !innum) {
             sign = -1;
             innum = 1;
             acc = 0;
-        } else if (c >= '0' && c <= '9'){
+        } else if (c >= '0' && c <= '9') {
             acc = acc*10 + (c - '0');
             innum = 1;
         } else {
-            if (innum){
+            if (innum) {
                 n++;
                 innum = 0;
                 sign = 1;
@@ -256,23 +332,23 @@ static int* parse_frag_array(const char* s, int* out_n){
     innum = 0;
     while (s[i] && k < n){
         char c = s[i++];
-        if (c == '?'){
-            if (innum){
+        if (c == '?') {
+            if (innum) {
                 out[k++] = sign*acc;
                 innum = 0;
                 sign = 1;
                 acc = 0;
             }
             out[k++] = -1;
-        } else if (c == '-' && !innum){
+        } else if (c == '-' && !innum) {
             sign = -1;
             innum = 1;
             acc = 0;
-        } else if (c >= '0' && c <= '9'){
+        } else if (c >= '0' && c <= '9') {
             acc = acc*10 + (c - '0');
             innum = 1;
         } else {
-            if (innum){
+            if (innum) {
                 out[k++] = sign*acc;
                 innum = 0;
                 sign = 1;

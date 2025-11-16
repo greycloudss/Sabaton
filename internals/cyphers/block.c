@@ -1,5 +1,5 @@
 #include "block.h"
-#include "../lithuanian.h"
+#include "../enhancements/lith/lithuanian.h"
 
 
 static unsigned char g_fflag = 2;
@@ -73,8 +73,7 @@ static uint8_t* read_cipher(const char* encText, int* bigN) {
     return c;
 }
 
-static void ascii_line(FILE* f,
-    const uint8_t* buf, size_t len) {
+static void ascii_line(FILE* f, const uint8_t* buf, size_t len) {
     if (!f || !buf || !len) return;
     uint8_t* tmp = (uint8_t* ) malloc(len);
     if (!tmp) return;

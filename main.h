@@ -23,7 +23,8 @@
 #include "internals/cyphers/stattests.h"
 #include "internals/cyphers/stream.h"
 
-#include "internals/lithuanian.h"
+#include "internals/enhancements/lith/lithuanian.h"
+#include "internals/enhancements/cuda/entry.h"
 
 #define FLAG_COUNT 4
 

@@ -1,11 +1,15 @@
 #include "feistel.h"
-#include "../lithuanian.h"
-
+#include "../enhancements/lith/lithuanian.h"
 #define MAX_FUNCS 5
 
 static char* g_first_line = NULL;
 static size_t g_first_len = 0;
 static int g_stop = 0;
+
+#ifdef USE_CUDA
+    char g_funcFlag = 0;
+#endif
+
 
 static int is_valid_plaintext(const char* s){
     if (!s) return 0;
@@ -14,11 +18,6 @@ static int is_valid_plaintext(const char* s){
     }
     return 1;
 }
-
-// static int is_valid_plaintext(const char* s){
-//     return s != NULL;
-// }
-
 
 int selFunc(char flag, uint8_t m, uint8_t k){
     switch (flag){
@@ -170,16 +169,17 @@ const char* partialFeistel(const char* encText, int* frag, size_t n, char flag){
     }
 
     fclose(fptr);
-    return recognEntry(fname);
+    return fname;
 }
 
-const char* bruteFeistel(const char* encText, int* frag, char flag){
+const char* bruteFeistel(const char* encText, int* frag, char flag) {
     int keys[3] = { -1, -1, -1 };
     if (frag){
         for (int i = 0; i < 3; ++i){
             keys[i] = frag[i];
         }
     }
+    printf("hi im mr.fuckles\n");
     return recognEntry(partialFeistel(encText, keys, 3, flag));
 }
 
