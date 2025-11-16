@@ -26,6 +26,8 @@ typedef struct {
     char aes;
     char block;
     char stat;
+    char graham;
+    char merkle;
 
     char enhancedBrute;
     char gpu;
