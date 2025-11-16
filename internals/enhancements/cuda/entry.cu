@@ -2,18 +2,7 @@
 #include "entry.h"
 #include <string.h>
 #include <stdio.h>
-#include "../../cyphers/affineCaesar.h"
-#include "../../cyphers/hill.h"
-#include "../../cyphers/vigenere.h"
-#include "../../cyphers/block.h"
-#include "../../cyphers/enigma.h"
-#include "../../cyphers/aes.h"
-#include "../../cyphers/scytale.h"
-#include "../../cyphers/transposition.h"
-#include "../../cyphers/fleissner.h"
-#include "../../cyphers/bifid.h"
-#include "../../cyphers/stream.h"
-#include "../../cyphers/stattests.h"
+
 
 extern char g_funcFlag;
 // void printASCII(void);
@@ -38,6 +27,13 @@ void entryCudaEnhancement(Arguments* args) {
         return;
     }
 
+    if (args->scytale) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = scytaleBrute(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+
     // if (args->block) {
     //     if (args->brute || !args->frag) {
     //         const char* res = blockEntry(args->encText, NULL, 0);
@@ -54,12 +50,7 @@ void entryCudaEnhancement(Arguments* args) {
     //     }
     // }
 
-    // if (args->scytale) {
-    //     const char* frag = args->brute ? NULL : args->frag;
-    //     const char* res = scytaleEntry(args->alph, args->encText, frag);
-    //     args->out = res;
-    //     return;
-    // }
+
 
     // if (args->bifid) {
     //     const char* frag = args->brute ? NULL : args->frag;

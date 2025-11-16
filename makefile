@@ -46,7 +46,9 @@ C_OBJECTS  = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
 ifeq ($(CUDA),1)
     CU_SOURCES = \
         ./internals/enhancements/cuda/feistel.cu \
-        ./internals/enhancements/cuda/entry.cu
+		./internals/enhancements/cuda/scytale.cu \
+        ./internals/enhancements/cuda/entry.cu \
+
     CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))
     OBJECTS    = $(C_OBJECTS) $(CU_OBJECTS)
 else
