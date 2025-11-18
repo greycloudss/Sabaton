@@ -182,7 +182,7 @@ inline static unsigned long gcd(unsigned long x, unsigned  long y) {
     #else
         int result = ((x < y) ? x : y);
         while (result > 0) {
-            if (a % result == 0 && b % result == 0) {
+            if (x % result == 0 && y % result == 0) {
                 break;
             }
             result--;
