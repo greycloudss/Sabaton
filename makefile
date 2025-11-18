@@ -1,12 +1,16 @@
 ifeq ($(OS),Windows_NT)
-	CLEAN = del /F /Q sabaton.exe 2>nul || true & rmdir /S /Q build 2>nul || true
-	OUT = sabaton.exe
-	MKDIR = mkdir
+SHELL = cmd.exe
+.SHELLFLAGS = /C
+
+CLEAN = if exist sabaton.exe del /F /Q sabaton.exe & if exist build rmdir /S /Q build
+OUT   = sabaton.exe
+MKDIR = mkdir
 else
-	CLEAN = rm -f sabaton && rm -rf build
-	OUT = sabaton
-	MKDIR = mkdir -p
+CLEAN = rm -f sabaton && rm -rf build
+OUT   = sabaton
+MKDIR = mkdir -p
 endif
+
 
 BUILD = build
 

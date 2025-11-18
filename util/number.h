@@ -7,7 +7,8 @@
 
 
 #ifdef _WIN32
-    char *strtok_r(char *str, const char *delim, char **saveptr) {
+    static char *my_strtok_r(char *str, const char *delim, char **saveptr)
+    {
         char *token;
 
         if (str == NULL)
@@ -32,6 +33,8 @@
 
         return token;
     }
+
+    #define strtok_r my_strtok_r
 #endif
 
 
