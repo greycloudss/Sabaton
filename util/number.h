@@ -180,7 +180,7 @@ inline static unsigned long gcd(unsigned long x, unsigned  long y) {
             return x << k;
         #endif
     #else
-        int result = ((xa < ya) ? xa : ya);
+        int result = ((x < y) ? x : y);
         while (result > 0) {
             if (a % result == 0 && b % result == 0) {
                 break;
