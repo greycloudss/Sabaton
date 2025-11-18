@@ -6,6 +6,9 @@
 #define __INT_MAX 2147483647
 
 
+#ifdef _WIN32
+#define strtok_r strtok_s
+#endif
 
 static unsigned long long mulmod_u64(unsigned long long a, unsigned long long b, unsigned long long m){
 #if defined(__SIZEOF_INT128__)
