@@ -7,8 +7,33 @@
 
 
 #ifdef _WIN32
-#define strtok_r strtok_s
+    char *strtok_r(char *str, const char *delim, char **saveptr) {
+        char *token;
+
+        if (str == NULL)
+            str = *saveptr;
+        if (str == NULL)
+            return NULL;
+
+        str += strspn(str, delim);
+        if (*str == '\0') {
+            *saveptr = NULL;
+            return NULL;
+        }
+
+        token = str;
+        str = strpbrk(token, delim);
+        if (str) {
+            *str = '\0';
+            *saveptr = str + 1;
+        } else {
+            *saveptr = NULL;
+        }
+
+        return token;
+    }
 #endif
+
 
 static unsigned long long mulmod_u64(unsigned long long a, unsigned long long b, unsigned long long m){
 #if defined(__SIZEOF_INT128__)
