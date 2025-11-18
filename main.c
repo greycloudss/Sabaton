@@ -526,7 +526,6 @@ int main(int argc, const char **argv)
     executionSelectionFunc(args.gpu)(&args);
     if (args.out && args.out[0]){
         if (strcmp(getExtension(args.out), "txt") == 0 && args.enhancedBrute && args.feistel) {
-            printf("Hi fuckass im here");
             recognEntry(args.out);
         }
             

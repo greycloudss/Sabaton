@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <string.h>
 #include <stdlib.h>
 #define __INT_MIN (-2147483647 - 1)
 #define __INT_MAX 2147483647
