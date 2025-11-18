@@ -8,11 +8,9 @@
 #include <stdio.h>
 
 
-__device__ void scytale_block_decrypt_dev(const int* encInt, int idx, const int* keyBytes, int rounds, char funcFlag, unsigned char* outL, unsigned char* outR) {
 
-}
 
-__global__ void scytaleKernel(const int* encInt, int bigN, int rounds, char funcFlag, unsigned char* outPlain, int* found, int* foundKey) {
+__global__ void scytaleKernel() {
  
 }
 

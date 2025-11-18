@@ -139,8 +139,7 @@ static inline unsigned long uabs_l(long x){
 
 inline static unsigned long gcd(unsigned long x, unsigned  long y) {
     #ifdef __x86_64__
-        // IF SOMETHING BREAKS UNCOMMENT THIS BLOCK AND COMMENT THE ONE WITH ASM
-        /* 
+        #ifdef _WIN32
             if (!x) return y;
             if (!y) return x;
             unsigned k = __builtin_ctzl(x | y);
@@ -155,30 +154,31 @@ inline static unsigned long gcd(unsigned long x, unsigned  long y) {
                 y -= x;
             } while (y);
             return x << k;
-        */
-        //unsigned long x = uabs_l(xa), y = uabs_l(ya);
-        if (!x) return y;
-        if (!y) return x;
+        #else
+            //unsigned long x = uabs_l(xa), y = uabs_l(ya);
+            if (!x) return y;
+            if (!y) return x;
 
-        unsigned k = __builtin_ctzl(x | y);
-        if ((x & 1ul) == 0) x >>= __builtin_ctzl(x);
-        
-        do {
-           if ((y & 1ul) == 0) y >>= __builtin_ctzl(y);
-            __asm__ volatile(
-                ".intel_syntax noprefix\n\t"
-                "cmp %0, %1\n\t"
-                "jle 1f\n\t"
-                "xchg %0, %1\n\t"
-                "1:\n\t"
-                "sub %1, %0\n\t"
-                ".att_syntax prefix"
-                :"+r"(x), "+r"(y)
-                :
-                : "cc"
-            );
-        } while (y);
-        return x << k;
+            unsigned k = __builtin_ctzl(x | y);
+            if ((x & 1ul) == 0) x >>= __builtin_ctzl(x);
+            
+            do {
+            if ((y & 1ul) == 0) y >>= __builtin_ctzl(y);
+                __asm__ volatile(
+                    ".intel_syntax noprefix\n\t"
+                    "cmp %0, %1\n\t"
+                    "jle 1f\n\t"
+                    "xchg %0, %1\n\t"
+                    "1:\n\t"
+                    "sub %1, %0\n\t"
+                    ".att_syntax prefix"
+                    :"+r"(x), "+r"(y)
+                    :
+                    : "cc"
+                );
+            } while (y);
+            return x << k;
+        #endif
     #else
         int result = ((xa < ya) ? xa : ya);
         while (result > 0) {
