@@ -1,21 +1,11 @@
-ifeq ($(OS),Windows_NT)
-SHELL = cmd.exe
-.SHELLFLAGS = /C
+OUT   := sabaton.exe
+CLEAN := rm -f sabaton sabaton.exe && rm -rf build
+MKDIR := mkdir -p
 
-CLEAN = if exist sabaton.exe del /F /Q sabaton.exe & if exist build rmdir /S /Q build
-OUT   = sabaton.exe
-MKDIR = mkdir
-else
-CLEAN = rm -f sabaton && rm -rf build
-OUT   = sabaton
-MKDIR = mkdir -p
-endif
+BUILD := build
 
-
-BUILD = build
-
-CC   = gcc
-NVCC = nvcc
+CC   := gcc
+NVCC := nvcc
 
 CUDA ?= 0
 
@@ -26,8 +16,8 @@ CFLAGS    = $(CFLAGS_COMMON)
 NVCCFLAGS = -O3
 
 ifeq ($(CUDA),1)
-    CFLAGS    += -DUSE_CUDA
-    NVCCFLAGS += -DUSE_CUDA
+CFLAGS    += -DUSE_CUDA
+NVCCFLAGS += -DUSE_CUDA
 endif
 
 C_SOURCES = \
@@ -43,20 +33,20 @@ C_SOURCES = \
 	./internals/hashes/xxhash32.c ./internals/enhancements/lith/lithuanian.c \
 	./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
 	./internals/cyphers/stream.c ./internals/cyphers/stattests.c \
-	./internals/cyphers/knapsack.c ./internals/cyphers/merkle.c ./internals/cyphers/graham.c \
+	./internals/cyphers/knapsack.c ./internals/cyphers/merkle.c ./internals/cyphers/graham.c
 
-C_OBJECTS  = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
+C_OBJECTS = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
 
 ifeq ($(CUDA),1)
-    CU_SOURCES = \
-        ./internals/enhancements/cuda/feistel.cu \
-		./internals/enhancements/cuda/scytale.cu \
-        ./internals/enhancements/cuda/entry.cu \
+CU_SOURCES = \
+	./internals/enhancements/cuda/feistel.cu \
+	./internals/enhancements/cuda/scytale.cu \
+	./internals/enhancements/cuda/entry.cu
 
-    CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))
-    OBJECTS    = $(C_OBJECTS) $(CU_OBJECTS)
+CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))
+OBJECTS    = $(C_OBJECTS) $(CU_OBJECTS)
 else
-    OBJECTS    = $(C_OBJECTS)
+OBJECTS    = $(C_OBJECTS)
 endif
 
 all: $(OUT)
