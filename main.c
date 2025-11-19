@@ -154,6 +154,8 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->feistel = 0;
     args->block = 0;
 
+    args->rsa = 0;
+
     args->stat = 0;
     args->scytale = 0;
     args->transposition = 0;
@@ -285,6 +287,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
 
             if (strcmp(a, "-aes") == 0){
                 args->aes = 1;
+                continue;
+            }
+            if (strcmp(a, "-rsa") == 0){
+                args->rsa = 1;
                 continue;
             }
             if (strcmp(a, "-graham") == 0){
@@ -432,6 +438,12 @@ void decypher(Arguments *args) {
     if (args->aes){
         const char *frag = args->brute ? NULL : args->frag;
         const char *res = aesEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->rsa){
+        const char *frag = args->brute ? NULL : args->frag;
+        const char *res = rsaEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

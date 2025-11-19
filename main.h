@@ -13,7 +13,7 @@
 #include "internals/cyphers/aes.h"
 #include "internals/cyphers/graham.h"
 #include "internals/cyphers/merkle.h"
-
+#include "internals/cyphers/rsa.h"
 
 #include "internals/cyphers/scytale.h"
 #include "internals/cyphers/transposition.h"
@@ -22,6 +22,7 @@
 #include "internals/cyphers/stream.h"
 #include "internals/cyphers/stattests.h"
 #include "internals/cyphers/stream.h"
+
 
 #include "internals/enhancements/lith/lithuanian.h"
 #include "internals/enhancements/cuda/entry.h"
