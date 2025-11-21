@@ -95,6 +95,16 @@ void printHelp()
     printf("                    Ciphertext is a list of large integers, e.g.:\n");
     printf("                    \"[495043978037,617076731681,774459852174,...]\".\n");
     printf("                    Bit slice: message bits are 12–19 from the right (1-based), packed MSB=bit19.\n");
+    printf("-rsa                Select the RSA module.\n");
+    printf("                    Three modes are supported inside -frag:\n");
+    printf("                     *[n,e,d]:    Decrypt using full private key.\n");
+    printf("                       -frag \"[n,e,d]:[N,37,D]\"\n");
+    printf("                     *mod:        Common–modulus attack (two users share n).\n");
+    printf("                       Provide two blocks [n,e,c] separated by '|'.\n");
+    printf("                       -frag \"mod:[n,e,c]:[N,37,C1]|[n,e,c]:[N,117,C2]\"\n");
+    printf("                     *derive:     Compute missing d using shared n and (e1,d1).\n");
+    printf("                       Returns ONLY d.\n");
+    printf("                       -frag \"derive:[n,e1,d1,e2]:[N,37,D1,71]\"\n");
     printf("-block              Select the Feistel *block cipher* module (ECB/CBC/CFB/CRT).\n");
     printf("                    Syntax: -frag '<MODE>:[k1,k2,k3];f=<0..3>' '<[[L,R], [L,R], ...]]'\n");
     printf("                    MODE: ECB (also accepts EBC), CBC, CFB, CRT (also accepts CTR).\n");
@@ -130,6 +140,10 @@ void printHelp()
     printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
     printf(" <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
+    printf("---------rsa---------------------\n");
+    printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"derive:[n,e1,d1,e2]:[10911792316465922985916807702379449750396409, 37, 9142312481363340880084193654225213067375433,101]\"\n");
+    printf("  then after getting d simple decryption can be used:\n");
+    printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"[n,e,d]:[10911792316465922985916807702379449750396409, 101, <newly got d>]" "1774197291654890760112079797868811212026549\"\n");
 }
 
 void parseArgs(Arguments *args, const int argv, const char **argc) {

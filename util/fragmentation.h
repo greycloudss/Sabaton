@@ -279,3 +279,100 @@ static inline char **fragGetStringArray(const FragMap *map,
     return parts;  
 }
 
+
+// bet kokiam seperator :, =, | ir t.t
+static inline FragMap fragmapParseTupleSep(const char *expr, char sep)
+{
+    FragMap map = (FragMap){ NULL, 0 };
+    if (!expr || !*expr) return map;
+
+    char *left = NULL;
+    char *right = NULL;
+    if (!fragSplitPair(expr, sep, &left, &right)) {
+        return map;
+    }
+
+    const char *l_start = left;
+    const char *l_end   = left + strlen(left);
+    while (l_start < l_end && isspace((unsigned char)*l_start)) l_start++;
+    while (l_end > l_start && isspace((unsigned char)l_end[-1])) l_end--;
+
+    if (l_end > l_start && *l_start == '[' && l_end[-1] == ']') {
+        l_start++; l_end--;
+        while (l_start < l_end && isspace((unsigned char)*l_start)) l_start++;
+        while (l_end > l_start && isspace((unsigned char)l_end[-1])) l_end--;
+    }
+
+    const char *r_start = right;
+    const char *r_end   = right + strlen(right);
+    while (r_start < r_end && isspace((unsigned char)*r_start)) r_start++;
+    while (r_end > r_start && isspace((unsigned char)r_end[-1])) r_end--;
+
+    if (r_end > r_start && *r_start == '[' && r_end[-1] == ']') {
+        r_start++; r_end--;
+        while (r_start < r_end && isspace((unsigned char)*r_start)) r_start++;
+        while (r_end > r_start && isspace((unsigned char)r_end[-1])) r_end--;
+    }
+
+    char *left_inner  = fragStrdupRange(l_start,  l_end);
+    char *right_inner = fragStrdupRange(r_start, r_end);
+    free(left);
+    free(right);
+    if (!left_inner || !right_inner) {
+        free(left_inner);
+        free(right_inner);
+        return map;
+    }
+
+    size_t key_count = 0;
+    char **keys = fragTokensSplit(left_inner, ',', &key_count);
+    size_t val_count = 0;
+    char **vals = fragTokensSplit(right_inner, ',', &val_count);
+    free(left_inner);
+    free(right_inner);
+
+    if (!keys || !vals || key_count == 0 || val_count == 0) {
+        fragTokensFree(keys, key_count);
+        fragTokensFree(vals, val_count);
+        return map;
+    }
+
+    size_t count = (key_count < val_count) ? key_count : val_count;
+    map.items = (FragPair *)calloc(count, sizeof(FragPair));
+    if (!map.items) {
+        fragTokensFree(keys, key_count);
+        fragTokensFree(vals, val_count);
+        return map;
+    }
+
+    size_t used = 0;
+    for (size_t i = 0; i < count; ++i) {
+        char *k = keys[i];
+        char *v = vals[i];
+        if (!k || !v) continue;
+
+        fragTrimInplace(k);
+        fragTrimInplace(v);
+
+        size_t klen = strlen(k);
+        if (klen >= 2 && k[0] == '"' && k[klen - 1] == '"') {
+            k[klen - 1] = '\0';
+            memmove(k, k + 1, klen - 1);
+        }
+        size_t vlen = strlen(v);
+        if (vlen >= 2 && v[0] == '"' && v[vlen - 1] == '"') {
+            v[vlen - 1] = '\0';
+            memmove(v, v + 1, vlen - 1);
+        }
+
+        map.items[used].key   = k;   
+        map.items[used].value = v;
+        used++;
+    }
+
+    free(keys);
+    free(vals);
+
+    map.count = used;
+    return map;
+}
