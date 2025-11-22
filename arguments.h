@@ -17,12 +17,12 @@ typedef struct {
     char fleissner;
     char bifid;
     char stream;
-
     char affineCaesar;
     char hill;
     char vigenere;
     char enigma;
     char feistel;
+    char elgamal;
     char aes;
     char block;
     char stat;

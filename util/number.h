@@ -130,6 +130,16 @@ static int iPow(int x, int power) {
     return (int)r;
 }
 
+static unsigned long long modexp_u64(unsigned long long base, unsigned long long exp, unsigned long long mod) {
+    unsigned long long res = 1ULL % mod;
+    base %= mod;
+    while (exp) {
+        if (exp & 1ULL) res = mulmod_u64(res, base, mod);
+        base = mulmod_u64(base, base, mod);
+        exp >>= 1ULL;
+    }
+    return res;
+}
 
 static char* numbersToBytes(const int* v, size_t n) {
     char* s = (char*)malloc(n + 1);

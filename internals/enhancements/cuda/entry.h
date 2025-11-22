@@ -1,7 +1,6 @@
 #pragma once
 #include "../../../arguments.h"
 #include "../../cyphers/feistel.h"
-#include "../../cyphers/scytale.h"
 
 
 #ifdef USE_CUDA
