@@ -144,7 +144,7 @@ void printHelp()
     printf("  <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
     printf("---------el gamal---------------------\n");
-    printf("  ./sabaton.exe -decypher -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -elgamal -frag \"1;2;3;4\" \\\n");
+    printf("  <prog> -decypher -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -elgamal -frag \"1;2;3;4\" \\\n");
     printf("    \"[1,<p>,<g>,<beta>,<m1>,<gamma>,<delta1>,<m2>,<gamma>,<delta2>][3,<p>,<C1>,<C2>]\"\n");
     printf("Notice how there is a trailing whitespace in the alphabet above, if you want to have a space do this.\n");
     printf("---------rsa---------------------\n");
