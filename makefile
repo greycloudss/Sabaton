@@ -34,6 +34,7 @@ C_SOURCES = \
 	./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
 	./internals/cyphers/stream.c ./internals/cyphers/stattests.c \
 	./internals/cyphers/knapsack.c ./internals/cyphers/merkle.c ./internals/cyphers/graham.c \
+	./internals/cyphers/rsa.c ./util/bigint.c \
 	./internals/cyphers/elgamal.c
 
 C_OBJECTS = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
@@ -56,6 +57,7 @@ $(BUILD):
 	$(MKDIR) $(BUILD)/internals
 	$(MKDIR) $(BUILD)/internals/cyphers
 	$(MKDIR) $(BUILD)/internals/hashes
+	$(MKDIR) $(BUILD)/util
 	$(MKDIR) $(BUILD)/internals/enhancements
 	$(MKDIR) $(BUILD)/internals/enhancements/lith
 	$(MKDIR) $(BUILD)/internals/enhancements/cuda

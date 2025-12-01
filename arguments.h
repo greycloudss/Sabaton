@@ -29,6 +29,8 @@ typedef struct {
     char graham;
     char merkle;
 
+    char rsa;
+
     char enhancedBrute;
     char gpu;
 
