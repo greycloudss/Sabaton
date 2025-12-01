@@ -37,12 +37,12 @@ WIP — core components exist but the project is actively being refined. Expect 
 | Feistel cipher                             | ✓      | Done        |
 | Block cipher modes (of operation)          | ✓      | Done        |
 | AES variant                                | ✓      | Done        |
-| Stream ciphers                             | ✗      | In progress |
+| Stream ciphers                             | ✓      | Done        |
 | Stream ciphers, statistical tests          | ✓      | Done        |
-| Knapsack cryptosystem                      | ✗      | —           |
-| RSA cipher (cryptosystem)                  | ✗      | —           |
-| Rabin and Blum–Goldwasser cryptosystems    | ✗      | —           |
-| ElGamal cryptosystem and digital signature | ✗      | —           |
+| Knapsack cryptosystem                      | ✓      | Done        |
+| RSA cipher (cryptosystem)                  | ✓      | Done        |
+| Rabin and Blum–Goldwasser cryptosystems    | ✓      | Done        |
+| ElGamal cryptosystem and digital signature | ✓      | Done        |
 | Secret sharing                             | ✗      | —           |
 | Secret sharing schemes                     | ✗      | —           |
 | Elliptic-curve cryptography                | ✗      | —           |
