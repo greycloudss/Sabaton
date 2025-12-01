@@ -117,6 +117,9 @@ void printHelp()
     printf("                    Blocks are byte pairs [L,R]. 3 Feistel rounds, final swap undone.\n");
     printf("                    CBC/CFB: supply IV as the *first* pair in the ciphertext array.\n");
     printf("                    CRT/CTR: keystream from a=F(i,k1); encrypt [a,a], XOR with C_i.\n");
+    printf("-elgamal           Select the ElGamal signatures/decryptor module.\n");
+    printf("                   Use -alph to set the alphabet (e.g. \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \").\n");
+    printf("                   Tasks are chosen via -frag (e.g. \"1;2;3;4\" for verify/recover/decrypt/DSA).\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -140,6 +143,10 @@ void printHelp()
     printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
     printf("  <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
+    printf("---------el gamal---------------------\n");
+    printf("  ./sabaton.exe -decypher -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -elgamal -frag \"1;2;3;4\" \\\n");
+    printf("    \"[1,<p>,<g>,<beta>,<m1>,<gamma>,<delta1>,<m2>,<gamma>,<delta2>][3,<p>,<C1>,<C2>]\"\n");
+    printf("Notice how there is a trailing whitespace in the alphabet above, if you want to have a space do this.\n");
     printf("---------rsa---------------------\n");
     printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"derive:[n,e1,d1,e2]:[10911792316465922985916807702379449750396409, 37, 9142312481363340880084193654225213067375433,101]\"\n");
     printf("  then after getting d simple decryption can be used:\n");
