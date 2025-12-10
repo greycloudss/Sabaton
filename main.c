@@ -117,6 +117,9 @@ void printHelp()
     printf("                    Blocks are byte pairs [L,R]. 3 Feistel rounds, final swap undone.\n");
     printf("                    CBC/CFB: supply IV as the *first* pair in the ciphertext array.\n");
     printf("                    CRT/CTR: keystream from a=F(i,k1); encrypt [a,a], XOR with C_i.\n");
+    printf("-elgamal           Select the ElGamal signatures/decryptor module.\n");
+    printf("                   Use -alph to set the alphabet (e.g. \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \").\n");
+    printf("                   Tasks are chosen via -frag (e.g. \"1;2;3;4\" for verify/recover/decrypt/DSA).\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -138,8 +141,12 @@ void printHelp()
     printf("  <prog> -decypher -affineCaesar -alph \"AĄBCČDEĘĖFGHIY...Ž\" -brute\n");
     printf("  <prog> -decypher -feistel -frag \"f=1;k=[?,30]" "[[92, 6], [91, 4], [74, 11], [78, 9], ... ]\"\n");
     printf("  <prog> -decypher -block -frag \"CRT:[210, ...];f=0' '[[238, 113], [252, 109], ... ]'\n");
-    printf(" <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
+    printf("  <prog> -decypher -fleissner -frag \"4;1010000100000000\" \"JAEIFWFEWF...\"\n");
     printf("  <prog> -decypher -bifid -alph \"ABCDEFGHIKLMNOPQRSTUVWXYZ\" -frag \"KEY;5\" \"TAFRQOS...\"\n");
+    printf("---------el gamal---------------------\n");
+    printf("  <prog> -decypher -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -elgamal -frag \"1;2;3;4\" \\\n");
+    printf("    \"[1,<p>,<g>,<beta>,<m1>,<gamma>,<delta1>,<m2>,<gamma>,<delta2>][3,<p>,<C1>,<C2>]\"\n");
+    printf("Notice how there is a trailing whitespace in the alphabet above, if you want to have a space do this.\n");
     printf("---------rsa---------------------\n");
     printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"derive:[n,e1,d1,e2]:[10911792316465922985916807702379449750396409, 37, 9142312481363340880084193654225213067375433,101]\"\n");
     printf("  then after getting d simple decryption can be used:\n");
@@ -166,6 +173,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->hill = 0;
     args->vigenere = 0;
     args->feistel = 0;
+    args->elgamal = 0;
     args->block = 0;
 
     args->rsa = 0;
@@ -177,7 +185,6 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->bifid = 0;
     args->stream = 0;
     args->rabin = 0;
-
 
     args->enigma = 0;
     args->aes = 0;
@@ -279,11 +286,11 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
                 args->stat = 1;
                 continue;
             }
+            
             if (strcmp(a, "-rabin") == 0){
                 args->rabin = 1;
                 continue;
             }
-            
 
             if (strcmp(a, "-vigenere") == 0 || strcmp(a, "-vig") == 0){
                 args->vigenere = 1;
@@ -295,10 +302,16 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
                 continue;
             }
 
+            if (strcmp(a, "-elgamal") == 0){
+                args->elgamal = 1;
+                continue;
+            }
+
             if (strcmp(a, "-block") == 0) {
                 args->block = 1;
                 continue;
             }
+
             if (strcmp(a, "-feistel") == 0){
                 args->feistel = 1;
                 continue;
@@ -316,28 +329,34 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
                 args->graham = 1;
                 continue;
             }
+
             if (strcmp(a, "-merkle") == 0){
                 args->merkle = 1;
                 continue;
             }
+
             if (strcmp(a, "-transposition") == 0) {
                 args->transposition = 1;
                 continue;
             }
+
             if (strcmp(a, "-bifid") == 0) {
                 args->bifid = 1;
                 continue;
             }
+
             if (strcmp(a, "-brute") == 0){
                 args->brute = 1;
                 continue;
             }
+
             if (strcmp(a, "-frag") == 0){
                 if (i + 1 < argv){
                     args->frag = argc[++i];
                 }
                 continue;
             }
+
             if (strcmp(a, "-alph") == 0){
                 if (i + 1 < argv){
                     args->alph = argc[++i];
@@ -406,6 +425,12 @@ void decypher(Arguments *args) {
     if (args->bifid) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = bifidEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->elgamal) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = elGamalEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

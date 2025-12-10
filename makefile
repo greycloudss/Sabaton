@@ -34,14 +34,14 @@ C_SOURCES = \
 	./internals/cyphers/bifid.c ./internals/cyphers/fleissner.c \
 	./internals/cyphers/stream.c ./internals/cyphers/stattests.c \
 	./internals/cyphers/knapsack.c ./internals/cyphers/merkle.c ./internals/cyphers/graham.c \
-	./internals/cyphers/rsa.c ./util/bigint.c
+	./internals/cyphers/rsa.c ./util/bigint.c \
+	./internals/cyphers/elgamal.c
 
 C_OBJECTS = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
 
 ifeq ($(CUDA),1)
 CU_SOURCES = \
 	./internals/enhancements/cuda/feistel.cu \
-	./internals/enhancements/cuda/scytale.cu \
 	./internals/enhancements/cuda/entry.cu
 
 CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))

@@ -27,13 +27,6 @@ void entryCudaEnhancement(Arguments* args) {
         return;
     }
 
-    if (args->scytale) {
-        const char* frag = args->brute ? NULL : args->frag;
-        const char* res = scytaleBrute(args->alph, args->encText, frag);
-        args->out = res;
-        return;
-    }
-
     // if (args->block) {
     //     if (args->brute || !args->frag) {
     //         const char* res = blockEntry(args->encText, NULL, 0);
