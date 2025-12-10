@@ -176,6 +176,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->fleissner = 0;
     args->bifid = 0;
     args->stream = 0;
+    args->rabin = 0;
 
 
     args->enigma = 0;
@@ -276,6 +277,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
             }
             if (strcmp(a, "-stat") == 0){
                 args->stat = 1;
+                continue;
+            }
+            if (strcmp(a, "-rabin") == 0){
+                args->rabin = 1;
                 continue;
             }
             
@@ -424,6 +429,12 @@ void decypher(Arguments *args) {
     if (args->fleissner) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = fleissnerEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->rabin) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = rabinEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

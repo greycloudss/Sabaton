@@ -17,6 +17,7 @@ typedef struct {
     char fleissner;
     char bifid;
     char stream;
+    char rabin;
 
     char affineCaesar;
     char hill;

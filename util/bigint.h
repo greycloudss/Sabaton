@@ -24,6 +24,10 @@ int  biCmp(const BigInt* a, const BigInt* b);
 void biAdd(BigInt* out, const BigInt* a, const BigInt* b);
 int  biSub(BigInt* out, const BigInt* a, const BigInt* b);
 void biShr1(BigInt* x);
+void biOne(BigInt* x);
+void biShl1(BigInt* x);
+int  biGetBit(const BigInt* x, size_t pos);
+void biSetBit(BigInt* x, size_t pos);
 void biAddMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
 void biMulMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
 void biPowmod(BigInt* out, const BigInt* base, const BigInt* exp, const BigInt* mod);
@@ -40,3 +44,9 @@ void biMul(BigInt* out, const BigInt* a, const BigInt* b);
 uint32_t biModU32(const BigInt* a, uint32_t m);
 
 void biDivU32(BigInt* q, const BigInt* a, uint32_t d);
+
+void biDivMod(const BigInt* dividend, const BigInt* divisor, BigInt* quotient, BigInt* remainder);
+
+void biMod(BigInt* r, const BigInt* a, const BigInt* b);
+void biDiv(BigInt* q, const BigInt* a, const BigInt* b);
+void biMulMod1(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);

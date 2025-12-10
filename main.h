@@ -22,6 +22,7 @@
 #include "internals/cyphers/stream.h"
 #include "internals/cyphers/stattests.h"
 #include "internals/cyphers/stream.h"
+#include "internals/cyphers/rabin.h"
 
 
 #include "internals/enhancements/lith/lithuanian.h"

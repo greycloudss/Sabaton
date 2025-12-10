@@ -1,5 +1,47 @@
 #include "bigint.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
 
+/* -------------------------------
+   Your existing code (unchanged)
+   ------------------------------- */
+
+// Set BigInt to 1
+void biOne(BigInt* x) {
+    biZero(x);
+    x->part[0] = 1;
+    x->len = 1;
+}
+
+// Shift BigInt left by 1 bit
+void biShl1(BigInt* x) {
+    uint32_t carry = 0;
+    for (size_t i = 0; i < x->len; ++i) {
+        uint64_t temp = ((uint64_t)x->part[i] << 1) | carry;
+        x->part[i] = (uint32_t)(temp & 0xFFFFFFFFu);
+        carry = (uint32_t)(temp >> 32);
+    }
+    if (carry && x->len < BIMAX_PARTS) x->part[x->len++] = carry;
+}
+
+// Get bit at position pos (0 = LSB)
+int biGetBit(const BigInt* x, size_t pos) {
+    size_t idx = pos / 32;
+    size_t bit = pos % 32;
+    if (idx >= x->len) return 0;
+    return (x->part[idx] >> bit) & 1;
+}
+
+// Set bit at position pos (0 = LSB)
+void biSetBit(BigInt* x, size_t pos) {
+    size_t idx = pos / 32;
+    size_t bit = pos % 32;
+    if (idx >= BIMAX_PARTS) return;
+    if (idx >= x->len) x->len = idx + 1;
+    x->part[idx] |= (1u << bit);
+}
 
 
 int biIsOne(const BigInt* x) {
@@ -121,67 +163,66 @@ void biAddMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) 
     biCopy(out, &tmp);
 }
 
-void biMulMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
-    BigInt res, x, y;
-    biZero(&res);
+void biMulMod(BigInt* res, const BigInt* x, const BigInt* y, const BigInt* mod) {
+    BigInt a, b;
+    biCopy(&a, x);
+    biCopy(&b, y);
+    biZero(res);
 
-    biCopy(&x, a);
-    biCopy(&y, b);
-
-    while (biCmp(&x, mod) >= 0) {
-        biSub(&x, &x, mod);
-    }
-    while (biCmp(&y, mod) >= 0) {
-        biSub(&y, &y, mod);
-    }
-
-    while (!biIsZero(&y)) {
-        if (biIsOdd(&y)) {
-            biAddMod(&res, &res, &x, mod);
+    while (!biIsZero(&b)) {
+        if (biIsOdd(&b)) {
+            biAddMod(res, res, &a, mod);  // safe modular addition
         }
-        biAddMod(&x, &x, &x, mod);
-        biShr1(&y);
+        biAddMod(&a, &a, &a, mod);       // safe modular doubling
+        biShr1(&b);                      // shift b right
     }
-
-    biCopy(out, &res);
 }
 
-void biPowmod(BigInt* out, const BigInt* base, const BigInt* exp, const BigInt* mod) {
-    BigInt result, b, e;
-    biFromU32(&result, 1); 
-    biCopy(&b, base);
-    biCopy(&e, exp);
 
-    while (biCmp(&b, mod) >= 0) {
-        biSub(&b, &b, mod);
-    }
+
+void biPowmod(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod) {
+    BigInt b;
+    biCopy(&b, base);
+    biOne(res);
+
+    BigInt e;
+    biCopy(&e, exp);
 
     while (!biIsZero(&e)) {
         if (biIsOdd(&e)) {
-            biMulMod(&result, &result, &b, mod);
+            biMulMod(res, res, &b, mod);
         }
         biMulMod(&b, &b, &b, mod);
         biShr1(&e);
     }
-
-    biCopy(out, &result);
 }
+
 
 
 void biMulAddSmall(BigInt* out, const BigInt* a, uint32_t m, uint32_t add) {
     uint64_t carry = add;
     size_t n = a->len;
+
     for (size_t i = 0; i < n; ++i) {
-        uint64_t p = (uint64_t)a->part[i] * (uint64_t)m + carry;
+        uint64_t p = (uint64_t)a->part[i] * m + carry;
         out->part[i] = (uint32_t)(p & 0xFFFFFFFFu);
         carry = p >> 32;
     }
-    if (carry && n < BIMAX_PARTS) {
-        out->part[n++] = (uint32_t)carry;
+
+    if (carry) {
+        if (n < BIMAX_PARTS) {
+            out->part[n++] = (uint32_t)carry;
+        } else {
+            // Handle overflow: truncate safely or raise error
+            fprintf(stderr, "BigInt overflow in biMulAddSmall\n");
+            carry = 0;
+        }
     }
+
     out->len = n;
     biNormalize(out);
 }
+
 
 void biFromDec(BigInt* x, const char* s) {
     biZero(x);
@@ -239,47 +280,71 @@ void biDivmodSmall(BigInt* q, uint32_t* r, const BigInt* a, uint32_t d) {
 }
 
 char* biToAlphabet(const BigInt* m, const char* alph, int base) {
-    if (!alph || base <= 1) return NULL;
+if (!m || !alph || base <= 1) return NULL;
 
-    if (biIsZero(m)) {
-        char* s = (char*)malloc(2);
-        if (!s) return NULL;
-        s[0] = alph[0];
-        s[1] = '\0';
-        return s;
-    }
-
-    BigInt tmp;
-    biCopy(&tmp, m);
-
-    uint32_t* digits = (uint32_t*)malloc(512 * sizeof(uint32_t));
-    if (!digits) return NULL;
-    size_t dcount = 0;
-
-    while (!biIsZero(&tmp)) {
-        BigInt q;
-        uint32_t rem = 0;
-        biDivmodSmall(&q, &rem, &tmp, (uint32_t)base);
-        digits[dcount++] = rem;
-        if (dcount >= 512) break;
-        biCopy(&tmp, &q);
-    }
-
-    char* out = (char*)malloc(dcount + 1);
-    if (!out) {
-        free(digits);
-        return NULL;
-    }
-    for (size_t i = 0; i < dcount; ++i) {
-        uint32_t idx = digits[dcount - 1 - i];
-        if ((int)idx >= base) idx = 0; 
-        out[i] = alph[idx];
-    }
-    out[dcount] = '\0';
-
-    free(digits);
-    return out;
+if (biIsZero(m)) {
+    char* s = (char*)malloc(2);
+    if (!s) return NULL;
+    s[0] = alph[0];
+    s[1] = '\0';
+    return s;
 }
+
+BigInt tmp;
+biCopy(&tmp, m);
+
+size_t capacity = 128;
+size_t dcount = 0;
+uint32_t* digits = (uint32_t*)malloc(capacity * sizeof(uint32_t));
+if (!digits) {
+    biClear(&tmp);
+    return NULL;
+}
+
+while (!biIsZero(&tmp)) {
+    BigInt q;
+    uint32_t rem;
+    biDivmodSmall(&q, &rem, &tmp, (uint32_t)base);
+
+    if (dcount >= capacity) {
+        capacity *= 2;
+        uint32_t* new_digits = (uint32_t*)realloc(digits, capacity * sizeof(uint32_t));
+        if (!new_digits) {
+            free(digits);
+            biClear(&tmp);
+            biClear(&q);
+            return NULL;
+        }
+        digits = new_digits;
+    }
+
+    digits[dcount++] = rem;
+    biClear(&tmp);
+    biCopy(&tmp, &q);
+    biClear(&q);
+}
+
+// Allocate output string
+char* out = (char*)malloc(dcount + 1);
+if (!out) {
+    free(digits);
+    biClear(&tmp);
+    return NULL;
+}
+
+for (size_t i = 0; i < dcount; ++i) {
+    uint32_t idx = digits[dcount - 1 - i];
+    if ((int)idx >= base) idx = 0; // fallback if somehow invalid
+    out[i] = alph[idx];
+}
+out[dcount] = '\0';
+
+free(digits);
+biClear(&tmp);
+return out;
+
+}
+
 
 void biClear(BigInt* x) {
     if (!x) return;
@@ -287,7 +352,7 @@ void biClear(BigInt* x) {
     x->len = 0;
 }
 
-// bit fucked used for phi shit cause wasnt working properly for the second task
+
 int biModInv(BigInt* out, const BigInt* a, const BigInt* n) {
     if (!out || !a || !n) return 0;
     if (biIsZero(n)) return 0;
@@ -428,9 +493,6 @@ int biModInv(BigInt* out, const BigInt* a, const BigInt* n) {
     return 0;
 }
 
-
-
-
 void biMul(BigInt* out, const BigInt* a, const BigInt* b)
 {
     BigInt res;
@@ -457,8 +519,6 @@ void biMul(BigInt* out, const BigInt* a, const BigInt* b)
     biCopy(out, &res);
 }
 
-
-
 uint32_t biModU32(const BigInt* a, uint32_t m)
 {
     uint32_t r = 0;
@@ -480,3 +540,101 @@ void biDivU32(BigInt* q, const BigInt* a, uint32_t d)
     biCopy(q, &quotient);
 }
 
+void biDivMod(const BigInt* dividend, const BigInt* divisor, BigInt* quotient, BigInt* remainder) {
+    biZero(quotient);
+    biZero(remainder);
+
+    BigInt tmpDividend;
+    biCopy(&tmpDividend, dividend);
+
+    for (int i = (int)(tmpDividend.len * 32 - 1); i >= 0; i--) {
+        biShl1(remainder);  // shift remainder left 1 bit
+        if (biGetBit(&tmpDividend, i)) {
+            biSetBit(remainder, 0);  // set LSB
+        }
+        if (biCmp(remainder, divisor) >= 0) {
+            BigInt tmp;
+            biSub(&tmp, remainder, divisor);
+            biCopy(remainder, &tmp);
+            biSetBit(quotient, i);
+        }
+    }
+}
+
+
+void biDiv(BigInt* q, const BigInt* a, const BigInt* b) {
+    BigInt r; // temporary remainder
+    biDivMod(a, b, q, &r); // dividend=a, divisor=b, quotient=q, remainder=&r
+}
+
+void biMod(BigInt* r, const BigInt* a, const BigInt* b) {
+    BigInt q; // temporary quotient
+    biDivMod(a, b, &q, r); // dividend=a, divisor=b, quotient=&q, remainder=r
+}
+
+
+void biMulMod1(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
+    BigInt tmp;
+    biMul(&tmp, a, b);
+    biMod(out, &tmp, mod);
+}
+
+int utf8_to_u32(const char* s, uint32_t* out, int max_count) {
+    if (!s || !out || max_count <= 0) return 0;
+    int count = 0;
+    const unsigned char* us = (const unsigned char*)s;
+    while (*us && count < max_count) {
+        uint32_t cp = 0;
+        if (us[0] < 0x80) {
+            cp = us[0];
+            us += 1;
+        } else if ((us[0] & 0xE0) == 0xC0) {
+            if (!us[1]) return -1;
+            cp = ((us[0] & 0x1F) << 6) | (us[1] & 0x3F);
+            us += 2;
+        } else if ((us[0] & 0xF0) == 0xE0) {
+            if (!us[1] || !us[2]) return -1;
+            cp = ((us[0] & 0x0F) << 12) | ((us[1] & 0x3F) << 6) | (us[2] & 0x3F);
+            us += 3;
+        } else if ((us[0] & 0xF8) == 0xF0) {
+            if (!us[1] || !us[2] || !us[3]) return -1;
+            cp = ((us[0] & 0x07) << 18) | ((us[1] & 0x3F) << 12) | ((us[2] & 0x3F) << 6) | (us[3] & 0x3F);
+            us += 4;
+        } else {
+            return -1;
+        }
+        out[count++] = cp;
+    }
+    return count;
+}
+
+int u32_to_utf8(const uint32_t* cps, int cps_len, char* buf, int buf_len) {
+    if (!cps || cps_len < 0 || !buf || buf_len <= 0) return -1;
+    int pos = 0;
+    for (int i = 0; i < cps_len; ++i) {
+        uint32_t cp = cps[i];
+        if (cp <= 0x7F) {
+            if (pos + 1 >= buf_len) return -1;
+            buf[pos++] = (char)cp;
+        } else if (cp <= 0x7FF) {
+            if (pos + 2 >= buf_len) return -1;
+            buf[pos++] = (char)(0xC0 | ((cp >> 6) & 0x1F));
+            buf[pos++] = (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0xFFFF) {
+            if (pos + 3 >= buf_len) return -1;
+            buf[pos++] = (char)(0xE0 | ((cp >> 12) & 0x0F));
+            buf[pos++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            buf[pos++] = (char)(0x80 | (cp & 0x3F));
+        } else if (cp <= 0x10FFFF) {
+            if (pos + 4 >= buf_len) return -1;
+            buf[pos++] = (char)(0xF0 | ((cp >> 18) & 0x07));
+            buf[pos++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+            buf[pos++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            buf[pos++] = (char)(0x80 | (cp & 0x3F));
+        } else {
+            return -1;
+        }
+    }
+    if (pos < buf_len) buf[pos] = '\0';
+    return pos;
+}
