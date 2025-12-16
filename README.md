@@ -45,7 +45,7 @@ WIP — core components exist but the project is actively being refined. Expect 
 | ElGamal cryptosystem and digital signature | ✓      | Done        |
 | Secret sharing                             | ✗      | —           |
 | Secret sharing schemes                     | ✗      | —           |
-| Elliptic-curve cryptography                | ✗      | —           |
+| Elliptic-curve cryptography                | ✓      | Done        |
 | Zero-knowledge proofs                      | ✗      | —           |
 
 

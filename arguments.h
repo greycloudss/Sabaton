@@ -29,7 +29,7 @@ typedef struct {
     char stat;
     char graham;
     char merkle;
-
+    char ellipticCurve;
     char rsa;
 
     char enhancedBrute;

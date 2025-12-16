@@ -117,6 +117,13 @@ void printHelp()
     printf("                    Blocks are byte pairs [L,R]. 3 Feistel rounds, final swap undone.\n");
     printf("                    CBC/CFB: supply IV as the *first* pair in the ciphertext array.\n");
     printf("                    CRT/CTR: keystream from a=F(i,k1); encrypt [a,a], XOR with C_i.\n");
+    printf("-ellipticCurve      Select the Elliptic Curve module (Menezes–Vanstone decrypt / EC-ElGamal signature).\n");
+    printf("                    Put parameters into -frag using ':' and '|' separators:\n");
+    printf("                    \"mode:mv|q:<prime>|a:<a>|b:<b>|P:[x,y]|n:<order>|r:<priv>\"\n");
+    printf("                    \"mode:sig|q:<prime>|a:<a>|b:<b>|P:[x,y]|n:<order>|r:<priv>[|k:<nonce>]\"\n");
+    printf("                    mode:mv  -> decrypts MV ciphertext; input is blocks [[[Rx,Ry],c1,c2],...].\n");
+    printf("                    mode:sig -> signs message m (encText is just \"100\"). Uses f(E[x,y])=x (alpha = gamma.x mod n).\n");
+    printf("                    For signature: k is optional; if omitted, a random invertible k (mod n) is chosen and printed.\n");
     printf("-elgamal           Select the ElGamal signatures/decryptor module.\n");
     printf("                   Use -alph to set the alphabet (e.g. \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \").\n");
     printf("                   Tasks are chosen via -frag (e.g. \"1;2;3;4\" for verify/recover/decrypt/DSA).\n");
@@ -151,6 +158,11 @@ void printHelp()
     printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"derive:[n,e1,d1,e2]:[10911792316465922985916807702379449750396409, 37, 9142312481363340880084193654225213067375433,101]\"\n");
     printf("  then after getting d simple decryption can be used:\n");
     printf("  <prog> -decypher -rsa -alph \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \" -frag \"[n,e,d]:[10911792316465922985916807702379449750396409, 101, <newly got d>]" "1774197291654890760112079797868811212026549\"\n");
+    printf("-------------elliptic Curve ---------------------\n");
+    printf("Menezes-Vanstone:\n");
+    printf("<prog> -decypher -ellipticCurve -frag \"mode:mv|q:3001|a:-7|b:2|P:[21,2819]|n:509|r:250\" \"[[[2447,854],38,105],[[1175,786],408,393],[[587,2951],240,452],[[468,1012],254,7],[[1720,2434],76,372],[[1579,569],336,506]]\"\n");
+    printf("Elgamal signature:\n");
+    printf("<prog> -decypher -ellipticCurve -frag \"mode:sig|q:3001|a:-7|b:2|P:[21,2819]|n:509|r:371|k:123\" \"100\"\n");
 }
 
 void parseArgs(Arguments *args, const int argv, const char **argc) {
@@ -175,6 +187,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->feistel = 0;
     args->elgamal = 0;
     args->block = 0;
+    args->ellipticCurve = 0;
 
     args->rsa = 0;
 
@@ -332,6 +345,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
 
             if (strcmp(a, "-merkle") == 0){
                 args->merkle = 1;
+                continue;
+            }
+            if (strcmp(a, "-ellipticCurve") == 0){
+                args->ellipticCurve = 1;
                 continue;
             }
 
@@ -512,6 +529,12 @@ void decypher(Arguments *args) {
     if (args->merkle) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = merkleEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->ellipticCurve) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = ellipticEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

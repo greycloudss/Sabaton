@@ -105,7 +105,6 @@ static inline FragMap fragmapParse(const char *frag,
         if (!t) continue;
         fragTrimInplace(t);
         if (!*t) {
-            free(t);
             continue;
         }
 
@@ -115,13 +114,11 @@ static inline FragMap fragmapParse(const char *frag,
             map.items[used].key = fragStrdupRange(t, t + strlen(t));
             map.items[used].value = NULL;
             used++;
-            free(t);
             continue;
         }
 
         char *key = fragStrdupRange(t, sep);
         char *val = fragStrdupRange(sep + 1, t + strlen(t));
-        free(t);
 
         if (!key || !val) {
             free(key);
