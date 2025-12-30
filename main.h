@@ -23,6 +23,7 @@
 #include "internals/cyphers/stattests.h"
 #include "internals/cyphers/stream.h"
 #include "internals/cyphers/rabin.h"
+#include "internals/cyphers/zkp.h"
 #include "internals/cyphers/elgamal.h"
 #include "internals/cyphers/elliptic.h"
 

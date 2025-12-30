@@ -124,9 +124,11 @@ void printHelp()
     printf("                    mode:mv  -> decrypts MV ciphertext; input is blocks [[[Rx,Ry],c1,c2],...].\n");
     printf("                    mode:sig -> signs message m (encText is just \"100\"). Uses f(E[x,y])=x (alpha = gamma.x mod n).\n");
     printf("                    For signature: k is optional; if omitted, a random invertible k (mod n) is chosen and printed.\n");
-    printf("-elgamal           Select the ElGamal signatures/decryptor module.\n");
-    printf("                   Use -alph to set the alphabet (e.g. \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \").\n");
-    printf("                   Tasks are chosen via -frag (e.g. \"1;2;3;4\" for verify/recover/decrypt/DSA).\n");
+    printf("-elgamal            Select the ElGamal signatures/decryptor module.\n");
+    printf("                    Use -alph to set the alphabet (e.g. \"aąbcčdeęėfghiįyjklmnoprsštuųūvzž \").\n");
+    printf("                    Tasks are chosen via -frag (e.g. \"1;2;3;4\" for verify/recover/decrypt/DSA).\n");
+    printf("-zkp                Select the zero-knowledge proof helper (quadratic residue + discrete log transcript).\n");
+    printf("                    Optional -frag overrides inputs (\"c,p,g,y,p\") and RNG seed (\"seed:<n>\").\n");
     printf("-alph <alphabet>    Alphabet string to operate on; its length m defines modulo m.\n");
     printf("                    Characters not in this string pass through unchanged.\n");
     printf("-frag <fragment>    Known plaintext snippet (e.g., prefix). Uses it to solve keys (a,b)\n");
@@ -198,6 +200,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->bifid = 0;
     args->stream = 0;
     args->rabin = 0;
+    args->zkp = 0;
 
     args->enigma = 0;
     args->aes = 0;
@@ -302,6 +305,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
             
             if (strcmp(a, "-rabin") == 0){
                 args->rabin = 1;
+                continue;
+            }
+            if (strcmp(a, "-zkp") == 0){
+                args->zkp = 1;
                 continue;
             }
 
@@ -477,6 +484,12 @@ void decypher(Arguments *args) {
     if (args->rabin) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = rabinEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->zkp) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = zkpEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

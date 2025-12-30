@@ -18,6 +18,7 @@ typedef struct {
     char bifid;
     char stream;
     char rabin;
+    char zkp;
     char affineCaesar;
     char hill;
     char vigenere;

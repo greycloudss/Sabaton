@@ -46,7 +46,7 @@ WIP — core components exist but the project is actively being refined. Expect 
 | Secret sharing                             | ✗      | —           |
 | Secret sharing schemes                     | ✗      | —           |
 | Elliptic-curve cryptography                | ✓      | Done        |
-| Zero-knowledge proofs                      | ✗      | —           |
+| Zero-knowledge proofs                      | ✓      | Done        |
 
 
 ---
@@ -123,6 +123,24 @@ Notes:
 
 * Alphabets are processed as Unicode code points — make sure the provided `-alph` contains every codepoint used in the ciphertext.
 * Hill cipher keys must be invertible mod alphabet size; non-invertible keys will not decrypt correctly.
+
+### ZKP helper (quadratic residue + discrete log transcript)
+
+Deterministically produces Fiat–Shamir transcripts for the course tasks:
+
+```bash
+# variant numbers: c, p, g, y, p
+./sabaton.exe -decypher -zkp -frag "63723,100003,2,10842,100003"
+```
+
+Output format matches the lecture examples:
+```
+1) P = [85262, 90441, 21019, 1234, 12345]
+C = [90565, 29102, 85110, 73213, 64525]
+
+2) c = 1906, r = 7169
+```
+Transcripts are deterministic for the same inputs; `seed:<n>` inside `-frag` is optional if you want to force a different transcript.
 
 ---
 
