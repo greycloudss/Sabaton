@@ -15,6 +15,7 @@
 #include "internals/cyphers/merkle.h"
 #include "internals/cyphers/rsa.h"
 
+#include "internals/cyphers/shamir.h"
 #include "internals/cyphers/scytale.h"
 #include "internals/cyphers/transposition.h"
 #include "internals/cyphers/fleissner.h"

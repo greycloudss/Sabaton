@@ -201,6 +201,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->stream = 0;
     args->rabin = 0;
     args->zkp = 0;
+    args->shamir = 0;
 
     args->enigma = 0;
     args->aes = 0;
@@ -305,6 +306,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
             
             if (strcmp(a, "-rabin") == 0){
                 args->rabin = 1;
+                continue;
+            }
+            if (strcmp(a, "-shamir") == 0){
+                args->shamir = 1;
                 continue;
             }
             if (strcmp(a, "-zkp") == 0){
@@ -438,6 +443,12 @@ void decypher(Arguments *args) {
             args->out = res;
             return;
         }
+    }
+    if (args->shamir) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = shamirEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
     }
 
     if (args->scytale) {
