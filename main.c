@@ -192,6 +192,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->ellipticCurve = 0;
 
     args->rsa = 0;
+    args->asmuth = 0;
 
     args->stat = 0;
     args->scytale = 0;
@@ -310,6 +311,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
             }
             if (strcmp(a, "-shamir") == 0){
                 args->shamir = 1;
+                continue;
+            }
+            if (strcmp(a, "-asmuth") == 0){
+                args->asmuth = 1;
                 continue;
             }
             if (strcmp(a, "-zkp") == 0){
@@ -447,6 +452,12 @@ void decypher(Arguments *args) {
     if (args->shamir) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = shamirEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->asmuth) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = asmuthEntry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }

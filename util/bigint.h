@@ -50,3 +50,5 @@ void biDivMod(const BigInt* dividend, const BigInt* divisor, BigInt* quotient, B
 void biMod(BigInt* r, const BigInt* a, const BigInt* b);
 void biDiv(BigInt* q, const BigInt* a, const BigInt* b);
 void biMulMod1(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
+
+void biDectoString(const BigInt* x, char* out, size_t outSize);

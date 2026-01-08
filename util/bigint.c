@@ -638,3 +638,38 @@ int u32_to_utf8(const uint32_t* cps, int cps_len, char* buf, int buf_len) {
     if (pos < buf_len) buf[pos] = '\0';
     return pos;
 }
+
+
+// Converts BigInt to decimal string (null-terminated)
+void biToDecString(const BigInt* x, char* out, size_t out_len) {
+    if (!x || !out || out_len == 0) return;
+
+    BigInt tmp;
+    biCopy(&tmp, x);
+
+    char buf[128];
+    size_t pos = 0;
+
+    if (biIsZero(&tmp)) {
+        if (out_len > 1) {
+            out[0] = '0';
+            out[1] = '\0';
+        }
+        return;
+    }
+
+    while (!biIsZero(&tmp) && pos < sizeof(buf) - 1) {
+        uint32_t rem;
+        BigInt q;
+        biDivmodSmall(&q, &rem, &tmp, 10);  // divide by 10
+        tmp = q;                              // tmp = quotient
+        buf[pos++] = '0' + rem;
+    }
+
+    // reverse buffer into output
+    size_t n = (pos < out_len - 1) ? pos : out_len - 1;
+    for (size_t i = 0; i < n; i++) {
+        out[i] = buf[n - 1 - i];
+    }
+    out[n] = '\0';
+}

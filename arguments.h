@@ -13,6 +13,7 @@ typedef struct {
     char decypher;
 
     char shamir;
+    char asmuth;
     char transposition;
     char scytale;
     char fleissner;
