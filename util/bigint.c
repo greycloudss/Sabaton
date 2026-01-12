@@ -673,3 +673,35 @@ void biToDecString(const BigInt* x, char* out, size_t out_len) {
     }
     out[n] = '\0';
 }
+
+
+
+//TESTS
+
+void biMulModTest(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
+    BigInt tmp;
+    biMul(&tmp, a, b);   // full multiplication
+    biMod(out, &tmp, mod);  // then reduce modulo
+}
+
+void biPowmodTest(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod) {
+    BigInt b;
+    biCopy(&b, base);
+    biOne(res);
+
+    BigInt e;
+    biCopy(&e, exp);
+
+    while (!biIsZero(&e)) {
+        if (biIsOdd(&e)) {
+            BigInt tmp;
+            biMulModTest(&tmp, res, &b, mod);
+            biCopy(res, &tmp);
+        }
+
+        BigInt tmp;
+        biMulModTest(&tmp, &b, &b, mod);
+        biCopy(&b, &tmp);
+        biShr1(&e);
+    }
+}

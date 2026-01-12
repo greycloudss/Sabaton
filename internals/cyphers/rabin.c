@@ -1,219 +1,220 @@
 #include "rabin.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
-//Something is wrong i think with BigInt lib
-//./a.exe -decypher -rabin -alph "aąbcčdeęėfghiįyjklmnoprsštuųūvzž" -frag "942413682100603,942413682100651" "165660886409218178876532152962165660886409218178876532152962"
+//./a.exe -decypher -rabin -frag "21197264541260668663598848260720037099|9334134961424238127|9334134961424238143"
+//didnt fix this shits ass
 
-/* Parse "p,q" or "[p,q]" into BigInts */
-static int parse_two_decimals(const char* frag, BigInt* p_out, BigInt* q_out) {
-if (!frag) return 0;
-char tmp[512];
-size_t L = strlen(frag);
-if (L >= sizeof(tmp)) return 0;
-
-size_t s = 0, e = L;
-if (frag[0] == '[') ++s;
-if (frag[L - 1] == ']') --e;
-size_t len = e - s;
-memcpy(tmp, frag + s, len);
-tmp[len] = '\0';
-
-char* comma = strchr(tmp, ',');
-if (!comma) return 0;
-*comma = '\0';
-char* pstr = tmp;
-char* qstr = comma + 1;
-
-while (*pstr == ' ' || *pstr == '\t') ++pstr;
-while (*qstr == ' ' || *qstr == '\t') ++qstr;
-char* endp = pstr + strlen(pstr) - 1;
-while (endp >= pstr && (*endp == ' ' || *endp == '\t')) { *endp = '\0'; --endp; }
-char* endq = qstr + strlen(qstr) - 1;
-while (endq >= qstr && (*endq == ' ' || *endq == '\t')) { *endq = '\0'; --endq; }
-
-if (!*pstr || !*qstr) return 0;
-
-biFromDec(p_out, pstr);
-biFromDec(q_out, qstr);
-return 1;
-
+static void biAddU32(BigInt* out, const BigInt* a, uint32_t v) {
+    BigInt tmp;
+    biFromU32(&tmp, v);
+    biAdd(out, a, &tmp);
 }
 
-static char* rabinDecodeDecimalToText(const BigInt* M, const char* alphUtf8) {
-    if (!M || !alphUtf8) return NULL;
+static void biDivU32Exact(BigInt* out, const BigInt* a, uint32_t d) {
+    BigInt q;
+    uint32_t r;
+    biDivmodSmall(&q, &r, a, d);
+    if (r != 0) {
+        fprintf(stderr, "Fatal: non-exact division in Rabin exponent\n");
+    }
+    biCopy(out, &q);
+}
 
-    /* produce decimal string for M */
-    char* dec = biToAlphabet(M, "0123456789", 10);
-    if (!dec) return NULL;
 
-    /* ensure even length by prepending a '0' if needed */
-    size_t len = strlen(dec);
-    if (len % 2 != 0) {
-        char* tmp = malloc(len + 2);
-        if (!tmp) { free(dec); return NULL; }
-        tmp[0] = '0';
-        memcpy(tmp + 1, dec, len + 1);
-        free(dec);
-        dec = tmp;
-        len++;
+
+/* Lithuanian alphabet + space */
+static const char* LIT_ALPH =
+    "aąbcčdeęėfghiįyjklmnoprsštuųūvzž ";
+
+/* ===============================
+   CRT combine
+   =============================== */
+void crt_combine(
+    BigInt* out,
+    const BigInt* mp, const BigInt* mq,
+    const BigInt* p,  const BigInt* q
+) {
+    BigInt n;
+    biMul(&n, p, q);
+
+    BigInt yp, yq;
+
+    /* yp = p^-1 mod q */
+    if (!biModInv(&yp, p, q)) {
+        printf("CRT error: p inverse mod q does not exist\n");
+        biZero(out);
+        return;
     }
 
-    /* convert alphabet UTF-8 into code points array */
-    uint32_t alph_cps[256];
-    int base = utf8_to_u32(alphUtf8, alph_cps, 256);
-    if (base <= 0) { free(dec); return NULL; }
-
-    /* we'll decode into Unicode code points first */
-    uint32_t msg_cps[8192];
-    int count = 0;
-
-    for (size_t i = 0; i < len; i += 2) {
-        /* make sure these are digits */
-        unsigned char c1 = (unsigned char)dec[i];
-        unsigned char c2 = (unsigned char)dec[i + 1];
-        if (!isdigit(c1) || !isdigit(c2)) {
-            /* malformed digit pair -> place '?' and continue */
-            msg_cps[count++] = '?';
-            continue;
-        }
-
-        int d1 = c1 - '0';
-        int d2 = c2 - '0';
-        int code = d1 * 10 + d2; /* 0..99 */
-
-        /* Python solver special-case: code == 33 means space */
-        if (code == 33) {
-            msg_cps[count++] = (uint32_t)' ';
-        } else if (code >= 1 && code <= base) {
-            /* map 01..base -> alph_cps[0..base-1] */
-            msg_cps[count++] = alph_cps[code - 1];
-        } else {
-            /* out-of-range -> '?' */
-            msg_cps[count++] = '?';
-        }
+    /* yq = q^-1 mod p */
+    if (!biModInv(&yq, q, p)) {
+        printf("CRT error: q inverse mod p does not exist\n");
+        biZero(out);
+        return;
     }
 
-    free(dec);
+    BigInt t1, t2, sum;
 
-    /* convert unicode cps to UTF-8 string */
-    char* out = malloc((size_t)count * 4 + 1);
-    if (!out) return NULL;
-    u32_to_utf8(msg_cps, count, out, (int)(count * 4 + 1));
+    /* t1 = mp * q * yq */
+    biMul(&t1, mp, q);
+    biMul(&t1, &t1, &yq);
+
+    /* t2 = mq * p * yp */
+    biMul(&t2, mq, p);
+    biMul(&t2, &t2, &yp);
+
+    biAdd(&sum, &t1, &t2);
+    biMod(out, &sum, &n);
+}
+
+/* ===============================
+   Number → text
+   =============================== */
+char* number2text(const BigInt* M) {
+    BigInt n;
+    biCopy(&n, M);
+
+    char tmp[1024];
+    int pos = 0;
+
+    while (!biIsZero(&n)) {
+        BigInt q;
+        uint32_t rem;
+
+        biDivmodSmall(&q, &rem, &n, 100);
+        int idx = (int)rem - 1;
+
+        if (idx >= 0 && idx < (int)strlen(LIT_ALPH))
+            tmp[pos++] = LIT_ALPH[idx];
+        else
+            tmp[pos++] = '?';
+
+        biCopy(&n, &q);
+    }
+
+    char* out = malloc(pos + 1);
+    for (int i = 0; i < pos; i++)
+        out[i] = tmp[pos - 1 - i];
+    out[pos] = '\0';
+
     return out;
 }
 
-/* Rabin decryption entry point */
-const char* rabinEntry(const char* alph, const char* encText, const char* frag) {
-if (!frag || !*frag) return strdup("[no frag provided]");
-if (!encText || !*encText) return strdup("[no ciphertext provided]");
 
-BigInt p, q;
-if (!parse_two_decimals(frag, &p, &q))
-    return strdup("[frag parse error: need p,q]");
+void rabin_decrypt(BigInt* c, BigInt* p, BigInt* q)
+{
+    BigInt n;
+    biMul(&n, p, q);
 
-if (biModU32(&p, 4) != 3 || biModU32(&q, 4) != 3) {
-    biClear(&p); biClear(&q);
-    return strdup("[p and q must both be 3 mod 4]");
-}
+    /* ---- compute exponents exactly ---- */
+    BigInt exp_p, exp_q;
 
-BigInt n;
-biMul(&n, &p, &q);
+    /* exp_p = (p + 1) / 4 */
+    biAddU32(&exp_p, p, 1);
+    biDivU32Exact(&exp_p, &exp_p, 4);
 
-BigInt C;
-biFromDec(&C, encText);
+    /* exp_q = (q + 1) / 4 */
+    biAddU32(&exp_q, q, 1);
+    biDivU32Exact(&exp_q, &exp_q, 4);
 
-BigInt one, exp_p, exp_q, tmp;
-biFromU32(&one, 1);
+    /* ---- square roots mod p, q ---- */
+BigInt mp, mq;
+biPowmodTest(&mp, c, &exp_p, p);
+biPowmodTest(&mq, c, &exp_q, q);
 
-biAdd(&tmp, &p, &one);
-biDivU32(&exp_p, &tmp, 4);
-biAdd(&tmp, &q, &one);
-biDivU32(&exp_q, &tmp, 4);
-biClear(&tmp);
+/* Reduce modulo p/q before negating */
+biMod(&mp, &mp, p);
+biMod(&mq, &mq, q);
 
-BigInt r_p, r_q;
-biPowmod(&r_p, &C, &exp_p, &p);
-biPowmod(&r_q, &C, &exp_q, &q);
+/* ---- CRT inverses ---- */
+BigInt yp, yq;
+biModInv(&yp, p, q); /* p^-1 mod q */
+biModInv(&yq, q, p); /* q^-1 mod p */
 
-BigInt inv_p;
-if (!biModInv(&inv_p, &p, &q)) {
-    biClear(&p); biClear(&q); biClear(&n);
-    biClear(&C); biClear(&one);
-    biClear(&exp_p); biClear(&exp_q);
-    biClear(&r_p); biClear(&r_q);
-    return strdup("[modinv failed]");
-}
+BigInt roots[4];
+int idx = 0;
 
-/* ---------- compute candidate roots (CRT) ---------- */
-BigInt s1vals[2], s2vals[2], diff, h, ph, x;
-biCopy(&s1vals[0], &r_p);
-biCopy(&tmp, &p);
-biSub(&tmp, &tmp, &r_p); 
-biMod(&s1vals[1], &tmp, &p);
+for (int sp = 0; sp < 2; ++sp) {
+    BigInt ap;
+    biCopy(&ap, &mp);
+    if (sp) {
+        BigInt tmp;
+        biCopy(&tmp, &mp);
+        biSub(&ap, p, &tmp);  // ap = (-mp) mod p
+    }
 
-biCopy(&s2vals[0], &r_q);
-biCopy(&tmp, &q);
-biSub(&tmp, &tmp, &r_q);
-biMod(&s2vals[1], &tmp, &q);
+    for (int sq = 0; sq < 2; ++sq) {
+        BigInt aq;
+        biCopy(&aq, &mq);
+        if (sq) {
+            BigInt tmp;
+            biCopy(&tmp, &mq);
+            biSub(&aq, q, &tmp);  // aq = (-mq) mod q
+        }
 
-BigInt candidates[4];
-for (int i = 0; i < 4; i++) biFromU32(&candidates[i], 0);
+        BigInt t1, t2, x;
+        biMul(&t1, &ap, q);
+        biMul(&t1, &t1, &yq);
 
-int cc = 0;
-biFromU32(&diff, 0); biFromU32(&h, 0); biFromU32(&ph, 0); biFromU32(&x, 0);
-for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 2; ++j) {
-        biSub(&diff, &s2vals[j], &s1vals[i]);
-        biMod(&diff, &diff, &q);
-        biMulMod1(&h, &diff, &inv_p, &q);
-        biMulMod1(&ph, &p, &h, &n);
-        biAdd(&x, &s1vals[i], &ph);
-        biMod(&x, &x, &n);
+        biMul(&t2, &aq, p);
+        biMul(&t2, &t2, &yp);
 
-        biCopy(&candidates[cc++], &x);
+        biAdd(&x, &t1, &t2);
+        biMod(&roots[idx++], &x, &n);
     }
 }
 
-if (!alph || !*alph) {
-    // no default alphabet allowed
-    biClear(&p); biClear(&q); biClear(&n);
-    biClear(&C); biClear(&one);
-    biClear(&exp_p); biClear(&exp_q);
-    biClear(&r_p); biClear(&r_q);
-    biClear(&inv_p);
-    biClear(&s1vals[0]); biClear(&s1vals[1]);
-    biClear(&s2vals[0]); biClear(&s2vals[1]);
-    biClear(&diff); biClear(&h); biClear(&ph); biClear(&x);
-    for (int k = 0; k < cc; k++) biClear(&candidates[k]);
-    return strdup("[no alphabet provided]");
-}
-const char* alphabet = alph;
 
+    /* ---- output ---- */
+    for (int i = 0; i < 4; ++i) {
+        char numbuf[256];
+        biToDecString(&roots[i], numbuf, sizeof numbuf);
 
-static char* result = NULL;
-if (result) { free(result); result = NULL; }
+        char* txt = number2text(&roots[i]);
 
-for (int k = 0; k < cc; k++) {
-    char* txt = rabinDecodeDecimalToText(&candidates[k], alphabet);
-    if (txt && txt[0]) { result = txt; break; }
-    if (txt) free(txt);
+        printf("Root %d:\n", i + 1);
+        printf("Number: %s\n", numbuf);
+        printf("Text:   %s\n\n", txt);
+
+        free(txt);
+    }
 }
 
-/* ---------- cleanup ---------- */
-biClear(&p); biClear(&q); biClear(&n);
-biClear(&C); biClear(&one);
-biClear(&exp_p); biClear(&exp_q);
-biClear(&r_p); biClear(&r_q);
-biClear(&inv_p);
-biClear(&s1vals[0]); biClear(&s1vals[1]);
-biClear(&s2vals[0]); biClear(&s2vals[1]);
-biClear(&diff); biClear(&h); biClear(&ph); biClear(&x);
-for (int k = 0; k < cc; k++) biClear(&candidates[k]);
 
-if (result) return result;
-return strdup("[decode failed]");
+/* ===============================
+   Entry (framework-style)
+   =============================== */
+const char* rabinEntry(const char* alph,
+                       const char* encText,
+                       const char* frag)
+{
+    (void)alph;
+    (void)encText;
 
+    if (!frag || !*frag)
+        return "[frag error]";
+
+    /* frag format: c|p|q */
+    char* copy = strdup(frag);
+    char* c_s = strtok(copy, "|");
+    char* p_s = strtok(NULL, "|");
+    char* q_s = strtok(NULL, "|");
+
+    if (!c_s || !p_s || !q_s) {
+        free(copy);
+        return "[frag error]";
+    }
+
+    BigInt c, p, q;
+    biFromDec(&c, c_s);
+    biFromDec(&p, p_s);
+    biFromDec(&q, q_s);
+
+    rabin_decrypt(&c, &p, &q);
+
+    free(copy);
+    return "[ok]";
 }

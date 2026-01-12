@@ -51,4 +51,14 @@ void biMod(BigInt* r, const BigInt* a, const BigInt* b);
 void biDiv(BigInt* q, const BigInt* a, const BigInt* b);
 void biMulMod1(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
 
-void biDectoString(const BigInt* x, char* out, size_t outSize);
+void biToDecString(const BigInt* x, char* out, size_t out_len);
+
+
+void biPowMod(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod);
+void biAddUInt(BigInt* out, const BigInt* a, uint32_t b);
+void biDivUInt(BigInt* q, const BigInt* a, uint32_t b);
+void biFromDecString(const BigInt* x, const char* s);
+
+
+void biMulModTest(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
+void biPowmodTest(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod);
