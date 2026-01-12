@@ -27,6 +27,30 @@ void entryCudaEnhancement(Arguments* args) {
         return;
     }
 
+    if (args->stream) {
+        const char* res = streamBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->rsa) {
+        const char* res = rsaBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->rabin) {
+        const char* res = rabinBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->merkle) {
+        const char* res = merkleBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
     // if (args->block) {
     //     if (args->brute || !args->frag) {
     //         const char* res = blockEntry(args->encText, NULL, 0);
