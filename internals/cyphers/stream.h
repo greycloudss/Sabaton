@@ -10,3 +10,13 @@
 #include "../../util/misc.h"
 
 const char* streamEntry(const char* alph, const char* encText, const char* frag);
+
+#ifdef USE_CUDA
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    const char* streamBruteCuda(const char* alph, const char* encText, const char* frag);
+    #ifdef __cplusplus
+    }
+    #endif
+#endif
