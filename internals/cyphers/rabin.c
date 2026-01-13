@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 //./a.exe -decypher -rabin -frag "21197264541260668663598848260720037099|9334134961424238127|9334134961424238143"
-//didnt fix this shits ass
+//kill me
 
 static void biAddU32(BigInt* out, const BigInt* a, uint32_t v) {
     BigInt tmp;
@@ -18,61 +19,24 @@ static void biDivU32Exact(BigInt* out, const BigInt* a, uint32_t d) {
     uint32_t r;
     biDivmodSmall(&q, &r, a, d);
     if (r != 0) {
-        fprintf(stderr, "Fatal: non-exact division in Rabin exponent\n");
+        fprintf(stderr, "Fatal: non-exact division\n");
+        exit(1);
     }
     biCopy(out, &q);
 }
 
+static void biNegMod(BigInt* out, const BigInt* x, const BigInt* m) {
+    if (biIsZero(x)) {
+        biZero(out);
+    } else {
+        biSub(out, m, x);
+    }
+}
 
-
-/* Lithuanian alphabet + space */
 static const char* LIT_ALPH =
     "aąbcčdeęėfghiįyjklmnoprsštuųūvzž ";
 
-/* ===============================
-   CRT combine
-   =============================== */
-void crt_combine(
-    BigInt* out,
-    const BigInt* mp, const BigInt* mq,
-    const BigInt* p,  const BigInt* q
-) {
-    BigInt n;
-    biMul(&n, p, q);
 
-    BigInt yp, yq;
-
-    /* yp = p^-1 mod q */
-    if (!biModInv(&yp, p, q)) {
-        printf("CRT error: p inverse mod q does not exist\n");
-        biZero(out);
-        return;
-    }
-
-    /* yq = q^-1 mod p */
-    if (!biModInv(&yq, q, p)) {
-        printf("CRT error: q inverse mod p does not exist\n");
-        biZero(out);
-        return;
-    }
-
-    BigInt t1, t2, sum;
-
-    /* t1 = mp * q * yq */
-    biMul(&t1, mp, q);
-    biMul(&t1, &t1, &yq);
-
-    /* t2 = mq * p * yp */
-    biMul(&t2, mq, p);
-    biMul(&t2, &t2, &yp);
-
-    biAdd(&sum, &t1, &t2);
-    biMod(out, &sum, &n);
-}
-
-/* ===============================
-   Number → text
-   =============================== */
 char* number2text(const BigInt* M) {
     BigInt n;
     biCopy(&n, M);
@@ -109,70 +73,60 @@ void rabin_decrypt(BigInt* c, BigInt* p, BigInt* q)
     BigInt n;
     biMul(&n, p, q);
 
-    /* ---- compute exponents exactly ---- */
     BigInt exp_p, exp_q;
-
-    /* exp_p = (p + 1) / 4 */
     biAddU32(&exp_p, p, 1);
     biDivU32Exact(&exp_p, &exp_p, 4);
 
-    /* exp_q = (q + 1) / 4 */
     biAddU32(&exp_q, q, 1);
     biDivU32Exact(&exp_q, &exp_q, 4);
 
-    /* ---- square roots mod p, q ---- */
-BigInt mp, mq;
-biPowmodTest(&mp, c, &exp_p, p);
-biPowmodTest(&mq, c, &exp_q, q);
+    BigInt mp, mq;
+    biPowmod(&mp, c, &exp_p, p);
+    biPowmod(&mq, c, &exp_q, q);
 
-/* Reduce modulo p/q before negating */
-biMod(&mp, &mp, p);
-biMod(&mq, &mq, q);
-
-/* ---- CRT inverses ---- */
-BigInt yp, yq;
-biModInv(&yp, p, q); /* p^-1 mod q */
-biModInv(&yq, q, p); /* q^-1 mod p */
-
-BigInt roots[4];
-int idx = 0;
-
-for (int sp = 0; sp < 2; ++sp) {
-    BigInt ap;
-    biCopy(&ap, &mp);
-    if (sp) {
-        BigInt tmp;
-        biCopy(&tmp, &mp);
-        biSub(&ap, p, &tmp);  // ap = (-mp) mod p
+    BigInt yp, yq;
+    if (!biModInv(&yp, p, q) || !biModInv(&yq, q, p)) {
+        printf("Inverse error\n");
+        return;
     }
 
-    for (int sq = 0; sq < 2; ++sq) {
-        BigInt aq;
-        biCopy(&aq, &mq);
-        if (sq) {
-            BigInt tmp;
-            biCopy(&tmp, &mq);
-            biSub(&aq, q, &tmp);  // aq = (-mq) mod q
+    BigInt roots[4];
+    int idx = 0;
+
+    for (int sp = 0; sp < 2; ++sp) {
+        BigInt ap;
+        if (sp == 0)
+            biCopy(&ap, &mp);
+        else
+            biNegMod(&ap, &mp, p);
+
+        for (int sq = 0; sq < 2; ++sq) {
+            BigInt aq;
+            if (sq == 0)
+                biCopy(&aq, &mq);
+            else
+                biNegMod(&aq, &mq, q);
+
+            BigInt t1, t2, x;
+
+            biMulMod(&t1, &ap, q, &n);
+            biMulMod(&t1, &t1, &yq, &n);
+
+            biMulMod(&t2, &aq, p, &n);
+            biMulMod(&t2, &t2, &yp, &n);
+
+            biAdd(&x, &t1, &t2);
+            if (biCmp(&x, &n) >= 0) {
+                biSub(&x, &x, &n);
+            }
+
+            biCopy(&roots[idx++], &x);
         }
-
-        BigInt t1, t2, x;
-        biMul(&t1, &ap, q);
-        biMul(&t1, &t1, &yq);
-
-        biMul(&t2, &aq, p);
-        biMul(&t2, &t2, &yp);
-
-        biAdd(&x, &t1, &t2);
-        biMod(&roots[idx++], &x, &n);
     }
-}
 
-
-    /* ---- output ---- */
     for (int i = 0; i < 4; ++i) {
         char numbuf[256];
         biToDecString(&roots[i], numbuf, sizeof numbuf);
-
         char* txt = number2text(&roots[i]);
 
         printf("Root %d:\n", i + 1);
@@ -184,9 +138,6 @@ for (int sp = 0; sp < 2; ++sp) {
 }
 
 
-/* ===============================
-   Entry (framework-style)
-   =============================== */
 const char* rabinEntry(const char* alph,
                        const char* encText,
                        const char* frag)
@@ -197,7 +148,6 @@ const char* rabinEntry(const char* alph,
     if (!frag || !*frag)
         return "[frag error]";
 
-    /* frag format: c|p|q */
     char* copy = strdup(frag);
     char* c_s = strtok(copy, "|");
     char* p_s = strtok(NULL, "|");
