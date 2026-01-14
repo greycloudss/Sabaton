@@ -34,9 +34,16 @@ void entryCudaEnhancement(Arguments* args) {
     }
 
     if (args->rsa) {
-        const char* res = rsaBruteCuda(args->alph, args->encText, args->frag);
-        args->out = res;
-        return;
+        // If full key provided, use modexp decrypt; otherwise fallback to brute demo.
+        if (args->frag && strstr(args->frag, "[n,e,d]") != NULL) {
+            const char* res = rsaModexpCuda(args->alph, args->encText, args->frag);
+            args->out = res;
+            return;
+        } else {
+            const char* res = rsaBruteCuda(args->alph, args->encText, args->frag);
+            args->out = res;
+            return;
+        }
     }
 
     if (args->rabin) {
@@ -47,6 +54,12 @@ void entryCudaEnhancement(Arguments* args) {
 
     if (args->merkle) {
         const char* res = merkleBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->aes) {
+        const char* res = aesBruteCuda(args->alph, args->encText, args->frag);
         args->out = res;
         return;
     }

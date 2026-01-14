@@ -256,6 +256,28 @@ static int decryptFull(const int in[4], const int Kstart[4],
 
 
 
+char* encryptAESV(const int* plain, int nBlocks, int p, int a, int b, const int T[4], const int K1[4], int rounds) {
+    if (!plain || nBlocks <= 0 || rounds <= 0)
+        return NULL;
+
+    size_t total = (size_t)nBlocks * 4;
+    int* out = malloc(total * sizeof(int));
+    if (!out) return NULL;
+
+    for (int i = 0; i < nBlocks; ++i) {
+        if (!encryptFull(&plain[i*4], K1, rounds, p, a, b, T, &out[i*4])) {
+            free(out);
+            return NULL;
+        }
+    }
+
+    char* text = numbersToBytes(out, total);
+    free(out);
+    return text;
+}
+
+
+
 char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b, const int T[4], const int K1[4], int rounds) {
     if (!cipher || nBlocks <= 0 || rounds <= 0) 
         return NULL;
@@ -275,9 +297,8 @@ char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b, const int
     }
 
     for (size_t i = 0; i < total; ++i) {
-        out[i] = mod(out[i], p); 
-        if (out[i] >= 65 && out[i] <= 90) continue;
-        out[i] = 65 + (out[i] % 26);
+        int v = mod(out[i], p);
+        out[i] = (int)((unsigned char)(v & 0xFF));
     }
 
     char *text = numbersToBytes(out, total);
@@ -384,6 +405,41 @@ const char* mitmHashSingle(
 
 
 
+static char* aes_encrypt_plaintext(const char* plainText, int p, int a, int b, const int T[4], const int K[4], int rounds) {
+    if (!plainText || !*plainText) return strdup("[aes enc] empty plaintext");
+    size_t len = strlen(plainText);
+    size_t padded = len;
+    if (padded % 4 != 0) padded += 4 - (padded % 4);
+    int* buf = calloc(padded, sizeof(int));
+    if (!buf) return strdup("[aes enc] alloc failed");
+    for (size_t i = 0; i < len; ++i) buf[i] = (unsigned char)plainText[i];
+    for (size_t i = len; i < padded; ++i) buf[i] = ' ';
+
+    int* out = calloc(padded, sizeof(int));
+    if (!out) { free(buf); return strdup("[aes enc] alloc failed"); }
+
+    int ok = 1;
+    for (size_t i = 0; i < padded && ok; i += 4) {
+        if (!encryptFull(&buf[i], K, rounds, p, a, b, T, &out[i])) ok = 0;
+    }
+    free(buf);
+    if (!ok) { free(out); return strdup("[aes enc] encrypt failed"); }
+
+    size_t cap = padded * 12 + 4;
+    char* ct = malloc(cap);
+    if (!ct) { free(out); return strdup("[aes enc] alloc failed"); }
+    size_t pos = 0;
+    ct[pos++] = '[';
+    for (size_t i = 0; i < padded; ++i) {
+        int w = snprintf(ct + pos, cap - pos, "%d%s", out[i], (i + 1 < padded) ? "," : "");
+        if (w <= 0 || (size_t)w >= cap - pos) { free(out); free(ct); return strdup("[aes enc] overflow"); }
+        pos += (size_t)w;
+    }
+    if (pos + 2 < cap) { ct[pos++] = ']'; ct[pos] = '\0'; }
+    free(out);
+    return ct;
+}
+
 const char* aesEntry(const char* alphabet, const char* cipherText, const char* fragment) {
     static char* output = NULL;
     if (output) {
@@ -404,13 +460,16 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
     int *cipher = NULL;
     int cipherCount = 0;
 
+    int encrypt_mode = 0;
+
     if (fragment && fragment[0]) {
         char* copy = strdup(fragment);
         char* part = strtok(copy, "|");
         while (part) {
             while (*part == ' ' || *part == '\t') ++part;
 
-            if (strncmp(part, "p:", 2) == 0) p = stoi(part + 2);
+            if (strncmp(part, "enc:", 4) == 0) { encrypt_mode = 1; }
+            else if (strncmp(part, "p:", 2) == 0) p = stoi(part + 2);
             else if (strncmp(part, "a:", 2) == 0) a = stoi(part + 2);
             else if (strncmp(part, "b:", 2) == 0) b = stoi(part + 2);
             else if (strncmp(part, "T:", 2) == 0) parseCSV(part + 2, T, &Tcount);
@@ -440,6 +499,16 @@ const char* aesEntry(const char* alphabet, const char* cipherText, const char* f
 
     if (p <= 0 || a == 0 || b == 0 || Tcount != 4) {
         return strdup("[missing or invalid parameters p, a, b, or T]");
+    }
+
+    if (encrypt_mode) {
+        if (keyCount != 4) return strdup("[aes enc] missing key (K:)");
+        const char* ct = aes_encrypt_plaintext(cipherText, p, a, b, T, key, rounds);
+        static char* out = NULL;
+        if (out) { free(out); out = NULL; }
+        out = ct ? strdup(ct) : strdup("[aes enc] failed");
+        if (ct) free((void*)ct);
+        return out;
     }
 
 

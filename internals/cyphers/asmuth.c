@@ -1,5 +1,7 @@
 #include "asmuth.h"
 
+void biToDecString(const BigInt* x, char* out, size_t out_len);
+
 //./a.exe -decypher -asmuth -alph "AĄBCČDEĘĖFGHIĮYJKLMNOPRSŠTUŲŪVZŽ" -frag "69638025634,31469233709,1818908519|128658463541,213565974133,258735195703|95455728217"
 
 static void parseCSVll(const char* s, long long* out, int* count) {

@@ -36,7 +36,7 @@ C_SOURCES = \
 	./internals/cyphers/knapsack.c ./internals/cyphers/merkle.c ./internals/cyphers/graham.c \
 	./internals/cyphers/rsa.c ./util/bigint.c \
 	./internals/cyphers/elgamal.c ./internals/cyphers/elliptic.c ./internals/cyphers/rabin.c \
-	./internals/cyphers/zkp.c \
+	./internals/cyphers/zkp.c ./internals/cyphers/shamir.c ./internals/cyphers/asmuth.c \
 
 C_OBJECTS = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
 
@@ -46,7 +46,8 @@ CU_SOURCES = \
 	./internals/enhancements/cuda/entry.cu \
 	./internals/enhancements/cuda/stream.cu \
 	./internals/enhancements/cuda/rsa_rabin.cu \
-	./internals/enhancements/cuda/knapsack.cu
+	./internals/enhancements/cuda/knapsack.cu \
+	./internals/enhancements/cuda/aes.cu
 
 CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))
 OBJECTS    = $(C_OBJECTS) $(CU_OBJECTS)

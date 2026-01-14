@@ -22,8 +22,14 @@ typedef struct {
     size_t mask;    
 } HashTable;
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
+char* decryptAESV(const int* cipher, int nBlocks, int p, int a, int b, const int T[4], const int K1[4], int rounds);
+char* encryptAESV(const int* plain, int nBlocks, int p, int a, int b, const int T[4], const int K1[4], int rounds);
 const char* aesEntry(const char* alph, const char* encText, const char* frag);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

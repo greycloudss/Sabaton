@@ -504,6 +504,12 @@ void decypher(Arguments *args) {
         return;
     }
     if (args->rabin) {
+        #ifdef USE_CUDA
+        if (!args->gpu) {
+            args->out = "[rabin requires -gpu build and -gpu flag]";
+            return;
+        }
+        #endif
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = rabinEntry(args->alph, args->encText, frag);
         args->out = res;

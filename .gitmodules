@@ -1,0 +1,3 @@
+[submodule "third_party/CGBN"]
+	path = third_party/CGBN
+	url = https://github.com/NVlabs/CGBN.git

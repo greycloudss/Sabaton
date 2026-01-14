@@ -5,6 +5,7 @@
 #include "../../cyphers/rsa.h"
 #include "../../cyphers/rabin.h"
 #include "../../cyphers/knapsack.h"
+#include "../../cyphers/aes.h"
 
 
 #ifdef USE_CUDA
@@ -14,8 +15,10 @@
 
     void entryCudaEnhancement(Arguments* Args);
     const char* rsaBruteCuda(const char* alph, const char* encText, const char* frag);
+    const char* rsaModexpCuda(const char* alph, const char* encText, const char* frag);
     const char* rabinBruteCuda(const char* alph, const char* encText, const char* frag);
     const char* merkleBruteCuda(const char* alph, const char* encText, const char* frag);
+    const char* aesBruteCuda(const char* alph, const char* encText, const char* frag);
 
     #ifdef __cplusplus
     }

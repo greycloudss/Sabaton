@@ -93,13 +93,30 @@ extern "C" const char* merkleBruteCuda(const char* alph, const char* encText, co
     char* text = numbersToBytes(bytes, (size_t)cN);
     free(bytes);
     cudaFree(d_key); cudaFree(d_found); cudaFree(d_mask);
-    free(key); free(cArr);
-    if (!text) return "[knap cuda] output alloc failed";
+    free(cArr);
+    if (!text) { free(key); return "[knap cuda] output alloc failed"; }
 
-    char* outBuf = ensure_knap_buf(strlen(text) + 1);
-    if (!outBuf) { free(text); return "[knap cuda] alloc failed"; }
-    strcpy(outBuf, text);
+    // Build key string
+    size_t kcap = (size_t)nBits * 12 + 8;
+    char* kstr = (char*)malloc(kcap);
+    if (!kstr) { free(text); free(key); return "[knap cuda] alloc failed"; }
+    size_t pos = 0;
+    kstr[pos++] = '[';
+    for (int i = 0; i < nBits; ++i) {
+        int w = snprintf(kstr + pos, kcap - pos, "%llu%s", (unsigned long long)key[i], (i + 1 < nBits) ? "," : "");
+        if (w <= 0 || (size_t)w >= kcap - pos) { free(text); free(key); free(kstr); return "[knap cuda] alloc failed"; }
+        pos += (size_t)w;
+    }
+    kstr[pos++] = ']';
+    kstr[pos] = '\0';
+
+    size_t need = strlen(kstr) + 1 + strlen(text) + 1;
+    char* outBuf = ensure_knap_buf(need);
+    if (!outBuf) { free(text); free(key); free(kstr); return "[knap cuda] alloc failed"; }
+    snprintf(outBuf, need, "%s\n%s", kstr, text);
     free(text);
+    free(key);
+    free(kstr);
     return outBuf;
 }
 
