@@ -7,6 +7,43 @@
 
 #ifdef USE_CUDA
 
+__device__ __forceinline__ uint64_t gcd64_dev(uint64_t a, uint64_t b) {
+    while (b) { uint64_t t = b; b = a % b; a = t; }
+    return a;
+}
+
+__device__ __forceinline__ uint64_t mulmod64_dev(uint64_t a, uint64_t b, uint64_t m) {
+    return (uint64_t)((__uint128_t)a * (__uint128_t)b % m);
+}
+
+__device__ __forceinline__ uint64_t rho_f(uint64_t x, uint64_t c, uint64_t m) {
+    return (mulmod64_dev(x, x, m) + c) % m;
+}
+
+/* Bounded Pollard Rho scan: many seeds in parallel, each with limited iterations. */
+__global__ void pollardRhoKernel(uint64_t n, uint64_t c_base, int max_iters, int* found, uint64_t* outP) {
+    uint64_t tid = (uint64_t)blockIdx.x * (uint64_t)blockDim.x + (uint64_t)threadIdx.x;
+    if ((n & 1ULL) == 0ULL) {
+        if (atomicCAS(found, 0, 1) == 0) *outP = 2;
+        return;
+    }
+
+    uint64_t c = (c_base ^ tid) | 1ULL;      /* ensure odd/non-zero */
+    uint64_t x = tid + 2ULL;
+    uint64_t y = x;
+
+    for (int i = 0; i < max_iters; ++i) {
+        if (atomicAdd(found, 0) != 0) return;
+        x = rho_f(x, c, n);
+        y = rho_f(rho_f(y, c, n), c, n);
+        uint64_t d = gcd64_dev(x > y ? x - y : y - x, n);
+        if (d > 1 && d < n) {
+            if (atomicCAS(found, 0, 1) == 0) *outP = d;
+            return;
+        }
+    }
+}
+
 __global__ void factorKernel(uint64_t n, uint64_t limit, int* found, uint64_t* outP) {
     uint64_t tid = (uint64_t)blockIdx.x * (uint64_t)blockDim.x + (uint64_t)threadIdx.x;
     uint64_t stride = (uint64_t)gridDim.x * (uint64_t)blockDim.x;
@@ -22,7 +59,29 @@ __global__ void factorKernel(uint64_t n, uint64_t limit, int* found, uint64_t* o
     }
 }
 
-static int factor64_cuda(uint64_t n, uint64_t limit, uint64_t* p_out) {
+static int factor64_cuda_rho(uint64_t n, uint64_t* p_out) {
+    int* d_found = NULL;
+    uint64_t* d_p = NULL;
+    cudaMalloc((void**)&d_found, sizeof(int));
+    cudaMalloc((void**)&d_p, sizeof(uint64_t));
+    int zero = 0;
+    cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
+
+    dim3 threads(256);
+    dim3 blocks(256);
+    pollardRhoKernel<<<blocks, threads>>>(n, 1, 4096, d_found, d_p);
+    cudaDeviceSynchronize();
+
+    int h_found = 0;
+    cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
+    if (h_found) cudaMemcpy(p_out, d_p, sizeof(uint64_t), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_found);
+    cudaFree(d_p);
+    return h_found;
+}
+
+static int factor64_cuda_trial(uint64_t n, uint64_t limit, uint64_t* p_out) {
     int* d_found = NULL;
     uint64_t* d_p = NULL;
     cudaMalloc((void**)&d_found, sizeof(int));
@@ -42,6 +101,12 @@ static int factor64_cuda(uint64_t n, uint64_t limit, uint64_t* p_out) {
     cudaFree(d_found);
     cudaFree(d_p);
     return h_found;
+}
+
+static int factor64_cuda(uint64_t n, uint64_t limit, uint64_t* p_out) {
+    /* Try bounded Pollard Rho first, fall back to trial division. */
+    if (factor64_cuda_rho(n, p_out)) return 1;
+    return factor64_cuda_trial(n, limit, p_out);
 }
 
 static uint64_t parse_u64(const char* s, int* ok) {
