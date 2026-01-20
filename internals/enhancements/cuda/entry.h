@@ -6,6 +6,10 @@
 #include "../../cyphers/rabin.h"
 #include "../../cyphers/knapsack.h"
 #include "../../cyphers/aes.h"
+#include "../../cyphers/shamir.h"
+#include "../../cyphers/asmuth.h"
+#include "../../cyphers/elliptic.h"
+#include "../../cyphers/elgamal.h"
 
 
 #ifdef USE_CUDA
@@ -19,6 +23,11 @@
     const char* rabinBruteCuda(const char* alph, const char* encText, const char* frag);
     const char* merkleBruteCuda(const char* alph, const char* encText, const char* frag);
     const char* aesBruteCuda(const char* alph, const char* encText, const char* frag);
+    const char* shamirCuda(const char* alph, const char* encText, const char* frag);
+    const char* asmuthCuda(const char* alph, const char* encText, const char* frag);
+    const char* ellipticCuda(const char* alph, const char* encText, const char* frag);
+    const char* elgamalCuda(const char* alph, const char* encText, const char* frag);
+    const char* blumGoldwasserCuda(const char* alph, const char* encText, const char* frag);
 
     #ifdef __cplusplus
     }

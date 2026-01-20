@@ -23,3 +23,72 @@ AES_P="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN F
 AES_FRAG_ENC="enc:|p:101|a:3|b:5|T:1,2,3,5|K:0,0,0,0|R:1"
 AES_CIPHER=$(./sabaton.exe -decypher -aes -frag "$AES_FRAG_ENC" "$AES_P")
 ./sabaton.exe -decypher -gpu -aes -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "brute|max:0|p:101|a:3|b:5|T:1,2,3,5|R:1" "$AES_CIPHER" > gpu_aesv.txt
+
+# --- New CUDA modules (use same plaintext start as other GPU samples) ---
+# Shared target plaintext prefix (matches beginning of the long sentence)
+P_PREFIX="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   "
+
+# Shamir 3-of-3: encode prefix "ONE T" via digit string 15,14,5,27,20 -> 1514052720
+./sabaton.exe -decypher -gpu -shamir -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "1,2,3|1514052720,1514052720,1514052720|2147483647" "$P_PREFIX" > gpu_shamir.txt
+
+# Asmuth-Bloom with the same secret (1514052720) using coprime moduli; reconstructs to "ONE T"
+S=1514052720
+S1=$((S % 1000003))
+S2=$((S % 1000033))
+S3=$((S % 1000037))
+./sabaton.exe -decypher -gpu -asmuth -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "$S1,$S2,$S3|1000003,1000033,1000037|4000000000" "$P_PREFIX" > gpu_asmuth.txt
+
+# Elliptic Menezes–Vanstone decrypt producing the full P_PREFIX:
+# Curve: y^2 = x^3 + x - 1 mod 101 (point (1,1) is on-curve). Using priv r=1 and R=(1,1) sets k1=k2=1,
+# so ciphertext embeds ASCII codes directly.
+ELL_CIPHER=$(python - <<'PY'
+import json
+plain = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """
+blocks = []
+R = (1, 1)
+for i in range(0, len(plain), 2):
+    c1 = ord(plain[i])
+    c2 = ord(plain[i + 1]) if i + 1 < len(plain) else ord(' ')
+    blocks.extend([R[0], R[1], c1, c2])
+print(json.dumps(blocks))
+PY
+)
+./sabaton.exe -decypher -gpu -ellipticCurve -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "mode:mv|q:101|a:1|b:100|P:[1,1]|n:101|r:1" "$ELL_CIPHER" > gpu_elliptic.txt
+
+# ElGamal test (mod prime, per-byte encryption)
+ELG_CIPHER=$(python - <<'PY'
+import json
+p = 104729
+g = 3
+a = 12345
+beta = pow(g, a, p)
+k = 7
+c1 = pow(g, k, p)
+plain = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """
+c2s = []
+pow_beta = pow(beta, k, p)
+for ch in plain.encode('ascii'):
+    c2s.extend([c1, (ch * pow_beta) % p])
+print(json.dumps(c2s))
+PY
+)
+./sabaton.exe -decypher -gpu -elgamal -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "p:104729|g:3|a:12345" "$ELG_CIPHER" > gpu_elgamal.txt
+
+# Blum-Goldwasser-style BBS mask with known seed
+BG_CIPHER=$(python - <<'PY'
+import json
+p = 1000003
+q = 1000033
+n = p * q
+x = 987654321
+plain = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """
+c = []
+xi = x % n
+for b in plain.encode('ascii'):
+    xi = (xi * xi) % n
+    ks = xi & 0xFF
+    c.append(b ^ ks)
+print(json.dumps(c))
+PY
+)
+./sabaton.exe -decypher -gpu -rabin -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "bg:1000003|1000033|987654321" "$BG_CIPHER" > gpu_bg.txt

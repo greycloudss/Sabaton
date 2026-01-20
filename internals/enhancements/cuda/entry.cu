@@ -33,6 +33,30 @@ void entryCudaEnhancement(Arguments* args) {
         return;
     }
 
+    if (args->shamir) {
+        const char* res = shamirCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->asmuth) {
+        const char* res = asmuthCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->ellipticCurve) {
+        const char* res = ellipticCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->elgamal) {
+        const char* res = elgamalCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
     if (args->rsa) {
         // If full key provided, use modexp decrypt; otherwise fallback to brute demo.
         if (args->frag && strstr(args->frag, "[n,e,d]") != NULL) {
@@ -47,6 +71,11 @@ void entryCudaEnhancement(Arguments* args) {
     }
 
     if (args->rabin) {
+        if (args->frag && strncmp(args->frag, "bg:", 3) == 0) {
+            const char* res = blumGoldwasserCuda(args->alph, args->encText, args->frag + 3);
+            args->out = res;
+            return;
+        }
         const char* res = rabinBruteCuda(args->alph, args->encText, args->frag);
         args->out = res;
         return;
