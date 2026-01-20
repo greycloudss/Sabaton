@@ -16,6 +16,11 @@ extern "C" {
 #include <string.h>
 #include <stdio.h>
 
+__constant__ char d_allowed_elg[256];
+__constant__ int  d_allowed_elg_len;
+__constant__ char d_allowed_ec[256];
+__constant__ int  d_allowed_ec_len;
+
 /* Device helpers for small 64-bit EC arithmetic */
 __device__ __forceinline__ unsigned long long mod_add64(unsigned long long a, unsigned long long b, unsigned long long m) {
     unsigned long long res = a + b;
@@ -116,6 +121,57 @@ __global__ static void mv_decrypt_kernel(const ECBlock* blocks, int count,
     status[idx] = 1;
 }
 
+__global__ static void mv_bruteforce_kernel(const ECBlock* blocks, int count,
+                                            unsigned long long q, unsigned long long a_mod,
+                                            unsigned long long n, unsigned long long max_r,
+                                            int* found, unsigned long long* out_r, char* out_plain) {
+    unsigned long long tid = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (unsigned long long r = tid + 1; r <= max_r; r += stride) {
+        if (atomicAdd(found, 0) != 0) return;
+        int ok = 1;
+        for (int bi = 0; bi < count; ++bi) {
+            ECBlock b = blocks[bi];
+            ECPoint_dev R = ec_xy_dev(b.Rx % q, b.Ry % q);
+            ECPoint_dev S = ec_mul_dev(q, a_mod, r, R);
+            unsigned long long k1 = S.x % n;
+            unsigned long long k2 = S.y % n;
+            if (k1 == 0 || k2 == 0) { ok = 0; break; }
+            unsigned long long invk1 = modinv64_dev(k1, n);
+            unsigned long long invk2 = modinv64_dev(k2, n);
+            unsigned long long m1 = mod_mul64(b.c1 % n, invk1, n);
+            unsigned long long m2 = mod_mul64(b.c2 % n, invk2, n);
+            unsigned char c1 = (unsigned char)(m1 & 0xFFu);
+            unsigned char c2 = (unsigned char)(m2 & 0xFFu);
+            int allowed1 = 0, allowed2 = 0;
+            for (int j = 0; j < d_allowed_ec_len; ++j) {
+                unsigned char ac = (unsigned char)d_allowed_ec[j];
+                if (ac == c1) allowed1 = 1;
+                if (ac == c2) allowed2 = 1;
+            }
+            if (!allowed1 || !allowed2) { ok = 0; break; }
+        }
+        if (!ok) continue;
+        if (atomicCAS(found, 0, 1) == 0) {
+            *out_r = r;
+            for (int bi = 0; bi < count; ++bi) {
+                ECBlock b = blocks[bi];
+                ECPoint_dev R = ec_xy_dev(b.Rx % q, b.Ry % q);
+                ECPoint_dev S = ec_mul_dev(q, a_mod, r, R);
+                unsigned long long k1 = S.x % n;
+                unsigned long long k2 = S.y % n;
+                unsigned long long invk1 = modinv64_dev(k1, n);
+                unsigned long long invk2 = modinv64_dev(k2, n);
+                unsigned long long m1 = mod_mul64(b.c1 % n, invk1, n);
+                unsigned long long m2 = mod_mul64(b.c2 % n, invk2, n);
+                out_plain[2 * bi]     = (char)(m1 & 0xFFu);
+                out_plain[2 * bi + 1] = (char)(m2 & 0xFFu);
+            }
+        }
+        return;
+    }
+}
+
 static char* build_utf8_from_pairs(const unsigned long long* m1, const unsigned long long* m2, int count) {
     char* out = (char*)malloc((size_t)count * 8 + 1);
     if (!out) return NULL;
@@ -146,14 +202,12 @@ extern "C" const char* ellipticCuda(const char* alph, const char* encText, const
     long long b_ll = fragGetLongLong(&map, "b", 0, &ok);
     long long n_ll = fragGetLongLong(&map, "n", 0, &ok);
     long long r_ll = fragGetLongLong(&map, "r", 0, &ok);
+    long long maxr_ll = fragGetLongLong(&map, "maxr", 0, &ok);
     const char* Pstr = fragGetScalar(&map, "P");
     const char* mode = fragGetScalar(&map, "mode");
     fragmapFree(&map);
-    if (!q_ll || !a_ll || !b_ll || !n_ll || !r_ll || !Pstr) return "[elliptic cuda] bad params";
-    if (mode && mode[0] && !(mode[0] == 'm' || mode[0] == 'd')) {
-        /* non-decrypt modes fall back to CPU */
-        return ellipticEntry(alph, encText, frag);
-    }
+    if (!q_ll || !a_ll || !b_ll || !n_ll || (!r_ll && !maxr_ll) || !Pstr) return "[elliptic cuda] bad params";
+    if (mode && mode[0] && !(mode[0] == 'm' || mode[0] == 'd')) return ellipticEntry(alph, encText, frag);
 
     int pcnt = 0;
     unsigned long long* parr = parse_ull_array(Pstr, &pcnt);
@@ -165,6 +219,7 @@ extern "C" const char* ellipticCuda(const char* alph, const char* encText, const
     unsigned long long a_mod = ((unsigned long long)((a_ll % (long long)q) + (long long)q)) % q;
     unsigned long long n = (unsigned long long)n_ll;
     unsigned long long priv_r = (unsigned long long)r_ll;
+    unsigned long long max_r = (unsigned long long)maxr_ll;
     (void)b_ll; /* unused but kept for parity */
     if ((Px | Py) == 0ULL) { /* appease warnings */ }
 
@@ -182,43 +237,83 @@ extern "C" const char* ellipticCuda(const char* alph, const char* encText, const
     }
     free(nums);
 
-    ECBlock* d_blocks = NULL;
-    unsigned long long* d_m1 = NULL;
-    unsigned long long* d_m2 = NULL;
-    int* d_status = NULL;
-    cudaMalloc((void**)&d_blocks, (size_t)blocks * sizeof(ECBlock));
-    cudaMalloc((void**)&d_m1, (size_t)blocks * sizeof(unsigned long long));
-    cudaMalloc((void**)&d_m2, (size_t)blocks * sizeof(unsigned long long));
-    cudaMalloc((void**)&d_status, (size_t)blocks * sizeof(int));
-    cudaMemcpy(d_blocks, h_blocks, (size_t)blocks * sizeof(ECBlock), cudaMemcpyHostToDevice);
-    cudaMemset(d_status, 0, (size_t)blocks * sizeof(int));
+    if (max_r > 0) {
+        const char* allowed = (alph && *alph) ? alph : "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+        int alen = (int)strlen(allowed);
+        if (alen > 255) alen = 255;
+        cudaMemcpyToSymbol(d_allowed_ec, allowed, (size_t)alen);
+        cudaMemcpyToSymbol(d_allowed_ec_len, &alen, sizeof(int));
+        ECBlock* d_blocks = NULL;
+        int* d_found = NULL;
+        unsigned long long* d_r = NULL;
+        char* d_plain = NULL;
+        cudaMalloc((void**)&d_blocks, (size_t)blocks * sizeof(ECBlock));
+        cudaMalloc((void**)&d_found, sizeof(int));
+        cudaMalloc((void**)&d_r, sizeof(unsigned long long));
+        cudaMalloc((void**)&d_plain, (size_t)(blocks * 2) * sizeof(char));
+        cudaMemcpy(d_blocks, h_blocks, (size_t)blocks * sizeof(ECBlock), cudaMemcpyHostToDevice);
+        int zero = 0;
+        cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
+        int threads = 256;
+        int grid = 256;
+        mv_bruteforce_kernel<<<grid, threads>>>(d_blocks, blocks, q, a_mod, n, max_r, d_found, d_r, d_plain);
+        cudaDeviceSynchronize();
+        int h_found = 0;
+        cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
+        if (!h_found) {
+            cudaFree(d_blocks); cudaFree(d_found); cudaFree(d_r); cudaFree(d_plain); free(h_blocks);
+            return "[elliptic cuda] no key found";
+        }
+        char* txt = (char*)malloc((size_t)blocks * 2 + 1);
+        if (!txt) {
+            cudaFree(d_blocks); cudaFree(d_found); cudaFree(d_r); cudaFree(d_plain); free(h_blocks);
+            return "[elliptic cuda] OOM";
+        }
+        cudaMemcpy(txt, d_plain, (size_t)(blocks * 2) * sizeof(char), cudaMemcpyDeviceToHost);
+        txt[blocks * 2] = '\0';
+        cudaFree(d_blocks); cudaFree(d_found); cudaFree(d_r); cudaFree(d_plain);
+        free(h_blocks);
+        out = txt;
+        return out;
+    } else {
+        ECBlock* d_blocks = NULL;
+        unsigned long long* d_m1 = NULL;
+        unsigned long long* d_m2 = NULL;
+        int* d_status = NULL;
+        cudaMalloc((void**)&d_blocks, (size_t)blocks * sizeof(ECBlock));
+        cudaMalloc((void**)&d_m1, (size_t)blocks * sizeof(unsigned long long));
+        cudaMalloc((void**)&d_m2, (size_t)blocks * sizeof(unsigned long long));
+        cudaMalloc((void**)&d_status, (size_t)blocks * sizeof(int));
+        cudaMemcpy(d_blocks, h_blocks, (size_t)blocks * sizeof(ECBlock), cudaMemcpyHostToDevice);
+        cudaMemset(d_status, 0, (size_t)blocks * sizeof(int));
 
-    int threads = 256;
-    int grid = (blocks + threads - 1) / threads;
-    mv_decrypt_kernel<<<grid, threads>>>(d_blocks, blocks, q, a_mod, n, priv_r, d_m1, d_m2, d_status);
-    cudaDeviceSynchronize();
+        int threads = 256;
+        int grid = (blocks + threads - 1) / threads;
+        mv_decrypt_kernel<<<grid, threads>>>(d_blocks, blocks, q, a_mod, n, priv_r, d_m1, d_m2, d_status);
+        cudaDeviceSynchronize();
 
-    int* h_status = (int*)malloc((size_t)blocks * sizeof(int));
-    unsigned long long* h_m1 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
-    unsigned long long* h_m2 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
-    if (!h_status || !h_m1 || !h_m2) {
+        int* h_status = (int*)malloc((size_t)blocks * sizeof(int));
+        unsigned long long* h_m1 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
+        unsigned long long* h_m2 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
+        if (!h_status || !h_m1 || !h_m2) {
+            cudaFree(d_blocks); cudaFree(d_m1); cudaFree(d_m2); cudaFree(d_status);
+            free(h_blocks); if (h_status) free(h_status); if (h_m1) free(h_m1); if (h_m2) free(h_m2);
+            return "[elliptic cuda] OOM";
+        }
+        cudaMemcpy(h_status, d_status, (size_t)blocks * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_m1, d_m1, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_m2, d_m2, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
         cudaFree(d_blocks); cudaFree(d_m1); cudaFree(d_m2); cudaFree(d_status);
-        free(h_blocks); if (h_status) free(h_status); if (h_m1) free(h_m1); if (h_m2) free(h_m2);
-        return "[elliptic cuda] OOM";
+        free(h_blocks);
+
+        for (int i = 0; i < blocks; ++i) { if (!h_status[i]) { free(h_status); free(h_m1); free(h_m2); return "[elliptic cuda] decrypt failed"; } }
+
+        char* txt = build_utf8_from_pairs(h_m1, h_m2, blocks);
+        free(h_status); free(h_m1); free(h_m2);
+        if (!txt) return "[elliptic cuda] alloc failed";
+        out = txt;
+        return out;
     }
-    cudaMemcpy(h_status, d_status, (size_t)blocks * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_m1, d_m1, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_m2, d_m2, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-    cudaFree(d_blocks); cudaFree(d_m1); cudaFree(d_m2); cudaFree(d_status);
-    free(h_blocks);
-
-    for (int i = 0; i < blocks; ++i) { if (!h_status[i]) { free(h_status); free(h_m1); free(h_m2); return "[elliptic cuda] decrypt failed"; } }
-
-    char* txt = build_utf8_from_pairs(h_m1, h_m2, blocks);
-    free(h_status); free(h_m1); free(h_m2);
-    if (!txt) return "[elliptic cuda] alloc failed";
-    out = txt;
-    return out;
 }
 
 /* ElGamal: heavy big-int use -> fallback to CPU path to preserve correctness */
@@ -233,14 +328,57 @@ static unsigned long long modexp64_host(unsigned long long base, unsigned long l
     return res;
 }
 
+__device__ unsigned long long modexp64_dev(unsigned long long base, unsigned long long exp, unsigned long long mod) {
+    unsigned long long res = 1 % mod;
+    base %= mod;
+    while (exp) {
+        if (exp & 1ULL) res = (unsigned long long)((unsigned __int128)res * base % mod);
+        base = (unsigned long long)((unsigned __int128)base * base % mod);
+        exp >>= 1ULL;
+    }
+    return res;
+}
+
+__global__ void elgamalBruteKernel(const unsigned long long* c1, const unsigned long long* c2, int blocks,
+                                   unsigned long long p, unsigned long long beta, unsigned long long maxA,
+                                   int* found, unsigned long long* outA, char* outPlain) {
+    unsigned long long tid = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (unsigned long long a = tid + 1; a <= maxA; a += stride) {
+        if (atomicAdd(found, 0) != 0) return;
+        unsigned long long beta_a = modexp64_dev(beta, a, p);
+        int ok = 1;
+        for (int i = 0; i < blocks; ++i) {
+            unsigned long long inv = modexp64_dev(c1[i], (p - 1ULL - (a % (p - 1ULL))) % (p - 1ULL), p);
+            unsigned long long m = (unsigned long long)((unsigned __int128)c2[i] * inv % p);
+            unsigned char ch = (unsigned char)(m & 0xFFu);
+            int allowed = 0;
+            for (int j = 0; j < d_allowed_elg_len; ++j) {
+                if ((unsigned char)d_allowed_elg[j] == ch) { allowed = 1; break; }
+            }
+            if (!allowed) { ok = 0; break; }
+        }
+        if (!ok) continue;
+        if (atomicCAS(found, 0, 1) == 0) {
+            *outA = a;
+            for (int i = 0; i < blocks; ++i) {
+                unsigned long long inv = modexp64_dev(c1[i], (p - 1ULL - (a % (p - 1ULL))) % (p - 1ULL), p);
+                unsigned long long m = (unsigned long long)((unsigned __int128)c2[i] * inv % p);
+                outPlain[i] = (char)(m & 0xFFu);
+            }
+        }
+        return;
+    }
+}
+
 extern "C" const char* elgamalCuda(const char* alph, const char* encText, const char* frag) {
     (void)alph;
     static char* out = NULL;
     if (out) { free(out); out = NULL; }
     if (!encText || !*encText || !frag || !*frag) return "[elgamal cuda] missing input";
 
-    /* Expect frag tokens p:<prime>|g:<gen>|a:<priv> */
-    unsigned long long p = 0, g = 0, a = 0;
+    unsigned long long p = 0, g = 0, a = 0, beta = 0, maxA = 0;
+    int brute = 0;
     char* copy = strdup(frag);
     if (!copy) return "[elgamal cuda] OOM";
     char* tok = strtok(copy, "|");
@@ -249,29 +387,72 @@ extern "C" const char* elgamalCuda(const char* alph, const char* encText, const 
         if (strncmp(tok, "p:", 2) == 0) p = strtoull(tok + 2, NULL, 10);
         else if (strncmp(tok, "g:", 2) == 0) g = strtoull(tok + 2, NULL, 10);
         else if (strncmp(tok, "a:", 2) == 0) a = strtoull(tok + 2, NULL, 10);
+        else if (strncmp(tok, "beta:", 5) == 0) beta = strtoull(tok + 5, NULL, 10);
+        else if (strncmp(tok, "max:", 4) == 0) { maxA = strtoull(tok + 4, NULL, 10); brute = 1; }
         tok = strtok(NULL, "|");
     }
     free(copy);
-    if (p < 5 || g == 0 || a == 0) return "[elgamal cuda] bad params";
+    if (p < 5 || g == 0) return "[elgamal cuda] bad params";
 
     int n = 0;
     unsigned long long* arr = parse_ull_array(encText, &n);
     if (!arr || (n % 2) != 0 || n == 0) { if (arr) free(arr); return "[elgamal cuda] bad ciphertext"; }
+    int blocks = n / 2;
 
-    char* buf = (char*)malloc((size_t)(n / 2) + 1);
-    if (!buf) { free(arr); return "[elgamal cuda] OOM"; }
-    int pos = 0;
-    for (int i = 0; i < n; i += 2) {
-        unsigned long long c1 = arr[i] % p;
-        unsigned long long c2 = arr[i + 1] % p;
-        unsigned long long inv = modexp64_host(c1, p - 1 - (a % (p - 1)), p);
-        unsigned long long m = (unsigned long long)((__uint128_t)c2 * inv % p);
-        buf[pos++] = (char)(m & 0xFFu);
+    if (brute) {
+        if (beta == 0 || maxA == 0) { free(arr); return "[elgamal cuda] brute needs beta and max"; }
+        const char* allowed = (alph && *alph) ? alph : "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+        int alen = (int)strlen(allowed);
+        if (alen > 255) alen = 255;
+        cudaMemcpyToSymbol(d_allowed_elg, allowed, (size_t)alen);
+        cudaMemcpyToSymbol(d_allowed_elg_len, &alen, sizeof(int));
+        unsigned long long* h_c1 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
+        unsigned long long* h_c2 = (unsigned long long*)malloc((size_t)blocks * sizeof(unsigned long long));
+        for (int i = 0; i < blocks; ++i) { h_c1[i] = arr[2*i] % p; h_c2[i] = arr[2*i+1] % p; }
+        unsigned long long* d_c1 = NULL; unsigned long long* d_c2 = NULL;
+        int* d_found = NULL; unsigned long long* d_a = NULL; char* d_plain = NULL;
+        cudaMalloc((void**)&d_c1, (size_t)blocks * sizeof(unsigned long long));
+        cudaMalloc((void**)&d_c2, (size_t)blocks * sizeof(unsigned long long));
+        cudaMalloc((void**)&d_found, sizeof(int));
+        cudaMalloc((void**)&d_a, sizeof(unsigned long long));
+        cudaMalloc((void**)&d_plain, (size_t)blocks * sizeof(char));
+        cudaMemcpy(d_c1, h_c1, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_c2, h_c2, (size_t)blocks * sizeof(unsigned long long), cudaMemcpyHostToDevice);
+        int zero = 0; cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
+        dim3 threads(256), grid(256);
+        elgamalBruteKernel<<<grid, threads>>>(d_c1, d_c2, blocks, p, beta, maxA, d_found, d_a, d_plain);
+        cudaDeviceSynchronize();
+        int h_found = 0; cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
+        if (!h_found) {
+            cudaFree(d_c1); cudaFree(d_c2); cudaFree(d_found); cudaFree(d_a); cudaFree(d_plain); free(h_c1); free(h_c2); free(arr);
+            return "[elgamal cuda] no key found";
+        }
+        char* buf = (char*)malloc((size_t)blocks + 1);
+        if (!buf) {
+            cudaFree(d_c1); cudaFree(d_c2); cudaFree(d_found); cudaFree(d_a); cudaFree(d_plain); free(h_c1); free(h_c2); free(arr);
+            return "[elgamal cuda] OOM";
+        }
+        cudaMemcpy(buf, d_plain, (size_t)blocks * sizeof(char), cudaMemcpyDeviceToHost);
+        buf[blocks] = '\0';
+        cudaFree(d_c1); cudaFree(d_c2); cudaFree(d_found); cudaFree(d_a); cudaFree(d_plain); free(h_c1); free(h_c2); free(arr);
+        out = buf;
+        return out;
+    } else {
+        if (a == 0) { free(arr); return "[elgamal cuda] missing a"; }
+        char* buf = (char*)malloc((size_t)blocks + 1);
+        if (!buf) { free(arr); return "[elgamal cuda] OOM"; }
+        for (int i = 0; i < n; i += 2) {
+            unsigned long long c1 = arr[i] % p;
+            unsigned long long c2 = arr[i + 1] % p;
+            unsigned long long inv = modexp64_host(c1, p - 1 - (a % (p - 1)), p);
+            unsigned long long m = (unsigned long long)((__uint128_t)c2 * inv % p);
+            buf[i/2] = (char)(m & 0xFFu);
+        }
+        buf[blocks] = '\0';
+        free(arr);
+        out = buf;
+        return out;
     }
-    buf[pos] = '\0';
-    free(arr);
-    out = buf;
-    return out;
 }
 
 #endif
