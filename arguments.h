@@ -34,6 +34,7 @@ typedef struct {
     char merkle;
     char ellipticCurve;
     char rsa;
+    char a5;
 
     char enhancedBrute;
     char gpu;

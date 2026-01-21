@@ -28,6 +28,7 @@
 #include "internals/cyphers/zkp.h"
 #include "internals/cyphers/elgamal.h"
 #include "internals/cyphers/elliptic.h"
+#include "internals/cyphers/a5.h"
 
 
 #include "internals/enhancements/lith/lithuanian.h"

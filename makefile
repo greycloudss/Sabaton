@@ -37,6 +37,7 @@ C_SOURCES = \
 	./internals/cyphers/rsa.c ./util/bigint.c \
 	./internals/cyphers/elgamal.c ./internals/cyphers/elliptic.c ./internals/cyphers/rabin.c \
 	./internals/cyphers/zkp.c ./internals/cyphers/shamir.c ./internals/cyphers/asmuth.c \
+	./internals/cyphers/a5.c \
 
 C_OBJECTS = $(patsubst ./%.c,$(BUILD)/%.o,$(C_SOURCES))
 

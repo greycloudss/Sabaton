@@ -69,6 +69,18 @@ void printHelp()
     printf("-enigma             Select the Enigma cipher module.\n");
     printf("                    For Enigma, pack rotors, reflector and key into -frag as\n");
     printf("                    \"R1:<...>|R2:<...>|KEY:<...>\".\n");
+    printf("-stream             Select the Stream/LFSR module (single 8-bit LFSR).\n");
+    printf("                    Use -frag to recover taps (coef) from known plaintext.\n");
+    printf("                    Outputs a file with 4 tap variants.\n");
+    printf("                    Any of them can be reused directly in -a5.\n");
+    printf("                    Example:\n");
+    printf("                    <prog> -decypher -stream -frag \"8;BE\" \"[234,144,...]\"\n");
+    printf("-a5                 Select the A5 (3x8-bit LFSR) module.\n");
+    printf("                    Uses three identical LFSRs with majority clocking (bits 1,2,3).\n");
+    printf("                    Taps (coef) must be obtained via -stream.\n");
+    printf("                    Use -frag to pass taps as byte 0..255 or 8-bit vector.\n");
+    printf("                    Example:\n");
+    printf("                    <prog> -decypher -a5 -frag \"139\" \"[220,224,...]\"\n");
     printf("-feistel            Select the Feistel cipher module.\n");
     printf("                    For Feistel, pack function and keys into -frag as \"f=<0..3>;k=[...]\".\n");
     printf("                    Example: -frag \"f=0;k=[108,59,164]\" or just -frag \"[108,59,164]\".\n");
@@ -203,6 +215,7 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
     args->rabin = 0;
     args->zkp = 0;
     args->shamir = 0;
+    args->a5 = 0;   
 
     args->enigma = 0;
     args->aes = 0;
@@ -366,6 +379,10 @@ void parseArgs(Arguments *args, const int argv, const char **argc) {
             }
             if (strcmp(a, "-ellipticCurve") == 0){
                 args->ellipticCurve = 1;
+                continue;
+            }
+            if (strcmp(a, "-a5") == 0){
+                args->a5 = 1;
                 continue;
             }
 
@@ -576,6 +593,12 @@ void decypher(Arguments *args) {
     if (args->ellipticCurve) {
         const char* frag = args->brute ? NULL : args->frag;
         const char* res = ellipticEntry(args->alph, args->encText, frag);
+        args->out = res;
+        return;
+    }
+    if (args->a5) {
+        const char* frag = args->brute ? NULL : args->frag;
+        const char* res = a5Entry(args->alph, args->encText, frag);
         args->out = res;
         return;
     }
