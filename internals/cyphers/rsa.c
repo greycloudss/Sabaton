@@ -50,6 +50,21 @@ static char* rsaDecodeDecimalToText(const BigInt* M, const char* alphUtf8) {
     return out;
 }
 
+static char* g_rsa_result = NULL;
+
+static void rsaResetResult(void) {
+    if (g_rsa_result) {
+        free(g_rsa_result);
+        g_rsa_result = NULL;
+    }
+}
+
+static const char* rsaAdoptResult(char* s) {
+    rsaResetResult();
+    g_rsa_result = s;
+    return g_rsa_result;
+}
+
 static const char* rsaDeriveD(const char* n_str,
                               const char* e1_str,
                               const char* d1_str,
@@ -117,9 +132,10 @@ static const char* rsaDeriveD(const char* n_str,
     biClear(&D2);
 
     if (!d2_str) {
+        rsaResetResult();
         return "RSA derive error: failed to convert d to decimal";
     }
-    return d2_str;
+    return rsaAdoptResult(d2_str);
 }
 
 
@@ -145,6 +161,7 @@ static void biFromLL(BigInt* x, long long v) {
 
 
 const char* rsaDecryption(const char* alph, const FragMap* vars, const char* encText){
+    rsaResetResult();
 
     if (!vars || vars->count < 3) {
         return "RSA error: need at least 3 values (n,e,d) for simple decryption";
@@ -174,7 +191,7 @@ const char* rsaDecryption(const char* alph, const FragMap* vars, const char* enc
         biClear(&C);
         biClear(&M);
 
-        return plaintext;
+        return plaintext ? rsaAdoptResult(plaintext) : "RSA error: decode failed";
     }
 }
 
@@ -284,12 +301,13 @@ const char* rsaModuloAttack(const char* alph,
     biClear(&M);
     biClear(&tmp);
 
-    return plaintext ? plaintext : "RSA mod error: decode failed";
+    return plaintext ? rsaAdoptResult(plaintext) : "RSA mod error: decode failed";
 }
 
 
 const char* rsaEntry(const char* alph, const char* encText, const char* frag)
 {
+    rsaResetResult();
     (void)encText; 
 
     int is_mod    = 0;
