@@ -56,7 +56,7 @@ static void biMulModWrap(BigInt* out, const BigInt* a, const BigInt* b, const Bi
 }
 
 static void biPowModWrap(BigInt* out, const BigInt* base, const BigInt* exp, const BigInt* mod) {
-    biPowmod(out, base, exp, mod);
+    biPowMod(out, base, exp, mod);
 }
 
 static int biModInvWrap(BigInt* out, const BigInt* a, const BigInt* mod) {

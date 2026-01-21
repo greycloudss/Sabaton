@@ -30,7 +30,7 @@ int  biGetBit(const BigInt* x, size_t pos);
 void biSetBit(BigInt* x, size_t pos);
 void biAddMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
 void biMulMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod);
-void biPowmod(BigInt* out, const BigInt* base, const BigInt* exp, const BigInt* mod);
+void biPowMod(BigInt* out, const BigInt* base, const BigInt* exp, const BigInt* mod);
 void biFromDec(BigInt* x, const char* s);
 void biDivmodSmall(BigInt* q, uint32_t* r, const BigInt* a, uint32_t d);
 char* biToAlphabet(const BigInt* m, const char* alph, int base);

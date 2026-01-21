@@ -179,8 +179,7 @@ void biMulMod(BigInt* res, const BigInt* x, const BigInt* y, const BigInt* mod) 
 }
 
 
-
-void biPowmod(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod) {
+void biPowMod(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod) {
     BigInt b;
     biCopy(&b, base);
     biOne(res);

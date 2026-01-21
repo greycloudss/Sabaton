@@ -164,7 +164,7 @@ const char* rsaDecryption(const char* alph, const FragMap* vars, const char* enc
         biFromDec(&D, d_str);
         biFromDec(&C, c_str);
 
-        biPowmod(&M, &C, &D, &N);
+        biPowMod(&M, &C, &D, &N);
 
         int base = (int)strlen(alph);
         char* plaintext = rsaDecodeDecimalToText(&M, alph);
@@ -238,7 +238,7 @@ const char* rsaModuloAttack(const char* alph,
     if (s >= 0) {
         BigInt eS;
         biFromLL(&eS, s);
-        biPowmod(&term1, &C1, &eS, &N);
+        biPowMod(&term1, &C1, &eS, &N);
         biClear(&eS);
     } else {
         BigInt inv1, eS;
@@ -247,7 +247,7 @@ const char* rsaModuloAttack(const char* alph,
             return "RSA mod error: inverse of C1 does not exist mod n";
         }
         biFromLL(&eS, -s);
-        biPowmod(&term1, &inv1, &eS, &N);
+        biPowMod(&term1, &inv1, &eS, &N);
         biClear(&inv1);
         biClear(&eS);
     }
@@ -255,7 +255,7 @@ const char* rsaModuloAttack(const char* alph,
     if (t >= 0) {
         BigInt eT;
         biFromLL(&eT, t);
-        biPowmod(&term2, &C2, &eT, &N);
+        biPowMod(&term2, &C2, &eT, &N);
         biClear(&eT);
     } else {
         BigInt inv2, eT;
@@ -265,7 +265,7 @@ const char* rsaModuloAttack(const char* alph,
             return "RSA mod error: inverse of C2 does not exist mod n";
         }
         biFromLL(&eT, -t);
-        biPowmod(&term2, &inv2, &eT, &N);
+        biPowMod(&term2, &inv2, &eT, &N);
         biClear(&inv2);
         biClear(&eT);
     }
