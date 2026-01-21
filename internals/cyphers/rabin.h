@@ -11,4 +11,3 @@
 
 
 const char* rabinEntry(const char* alph, const char* encText, const char* frag);
-
