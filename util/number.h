@@ -38,27 +38,55 @@
     #define strtok_r my_strtok_r
 #endif
 
-
-static unsigned long long mulmod_u64(unsigned long long a, unsigned long long b, unsigned long long m){
-#if defined(__SIZEOF_INT128__)
-    __uint128_t x = (__uint128_t)(a % m) * (__uint128_t)(b % m);
-    return (unsigned long long)(x % m);
-#else
-    unsigned long long res = 0ULL; a %= m; b %= m;
-    while (b){
-        if (b & 1ULL){ res = (res >= m - a) ? (res + a - m) : (res + a); }
-        a = (a >= m - a) ? (a + a - m) : (a + a);
-        b >>= 1ULL;
+static inline unsigned long long mulmod_u64(unsigned long long a, unsigned long long b, unsigned long long m){
+    if (m == 0) {
+        printf("[Number] {mulmod_u64} bad m value (equals 0)\n");
+        return 0;
     }
-    return res;
-#endif
+
+    #if defined (__x86_64__) && !defined(__SIZEOF_INT128__)
+        // could perhaps cause issues, but the user is my test subject
+        unsigned long long am = a % m;
+        unsigned long long bm = b % m;
+        unsigned long long rem;
+        __asm__ volatile(
+            ".intel_syntax noprefix\n\t"
+                "mov rax, %1\n\t"
+                "mul %2\n\t"
+                "div %3\n\t"
+                "mov %0, rdx\n\t"
+            ".att_syntax prefix\n\t"
+            : "=r"(rem)
+            : "r"(am), "r"(bm), "r"(m)
+            : "rax", "rdx", "cc"
+        );
+        return rem;
+    #elif defined(__SIZEOF_INT128__)
+        __uint128_t x = (__uint128_t)(a % m) * (__uint128_t)(b % m);
+        return (unsigned long long)(x % m);
+    #else
+        unsigned long long res = 0ULL; a %= m; b %= m;
+        while (b){
+            if (b & 1ULL)
+                res = (res >= m - a) ? (res + a - m) : (res + a);
+            
+            a = (a >= m - a) ? (a + a - m) : (a + a);
+            
+            b >>= 1ULL;
+        }
+        return res;
+    #endif
 }
 
 static long long egcd64(long long a, long long b, long long* x, long long* y){
     if (b == 0){ *x = 1; *y = 0; return a; }
-    long long x1, y1; long long g = egcd64(b, a % b, &x1, &y1);
-    *x = y1; *y = x1 - (a / b) * y1; return g;
+    long long x1, y1;
+    long long g = egcd64(b, a % b, &x1, &y1);
+    *x = y1;
+    *y = x1 - (a / b) * y1;
+    return g;
 }
+
 static unsigned long long modinv_u64(unsigned long long a, unsigned long long m){
     long long x, y; long long g = egcd64((long long)(a % m), (long long)m, &x, &y);
     if (g != 1) return 0ULL;
@@ -205,7 +233,7 @@ inline static unsigned long gcd(unsigned long x, unsigned  long y) {
             if ((x & 1ul) == 0) x >>= __builtin_ctzl(x);
             
             do {
-            if ((y & 1ul) == 0) y >>= __builtin_ctzl(y);
+                if ((y & 1ul) == 0) y >>= __builtin_ctzl(y);
                 __asm__ volatile(
                     ".intel_syntax noprefix\n\t"
                     "cmp %0, %1\n\t"
@@ -213,7 +241,7 @@ inline static unsigned long gcd(unsigned long x, unsigned  long y) {
                     "xchg %0, %1\n\t"
                     "1:\n\t"
                     "sub %1, %0\n\t"
-                    ".att_syntax prefix"
+                    ".att_syntax prefix\n\t"
                     :"+r"(x), "+r"(y)
                     :
                     : "cc"

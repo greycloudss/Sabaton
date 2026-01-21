@@ -155,8 +155,18 @@ void biShr1(BigInt* x) {
 }
 
 void biAddMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
-    BigInt tmp;
-    biAdd(&tmp, a, b);
+    if (!out || !a || !b || !mod || biIsZero(mod)) {
+        if (out) biZero(out);
+        return;
+    }
+
+    BigInt ar, br, tmp;
+
+    /* Ensure operands are reduced before adding to avoid overflow above mod */
+    biMod(&ar, a, mod);
+    biMod(&br, b, mod);
+
+    biAdd(&tmp, &ar, &br);
     if (biCmp(&tmp, mod) >= 0) {
         biSub(&tmp, &tmp, mod);
     }
@@ -164,17 +174,22 @@ void biAddMod(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) 
 }
 
 void biMulMod(BigInt* res, const BigInt* x, const BigInt* y, const BigInt* mod) {
+    if (!res || !x || !y || !mod || biIsZero(mod)) {
+        if (res) biZero(res);
+        return;
+    }
+
     BigInt a, b;
-    biCopy(&a, x);
-    biCopy(&b, y);
+    biMod(&a, x, mod);
+    biMod(&b, y, mod);
     biZero(res);
 
     while (!biIsZero(&b)) {
         if (biIsOdd(&b)) {
-            biAddMod(res, res, &a, mod);  // safe modular addition
+            biAddMod(res, res, &a, mod);
         }
-        biAddMod(&a, &a, &a, mod);       // safe modular doubling
-        biShr1(&b);                      // shift b right
+        biAddMod(&a, &a, &a, mod);
+        biShr1(&b);
     }
 }
 
@@ -540,6 +555,12 @@ void biDivU32(BigInt* q, const BigInt* a, uint32_t d)
 }
 
 void biDivMod(const BigInt* dividend, const BigInt* divisor, BigInt* quotient, BigInt* remainder) {
+    if (!dividend || !divisor || biIsZero(divisor)) {
+        if (quotient) biZero(quotient);
+        if (remainder) biZero(remainder);
+        return;
+    }
+
     biZero(quotient);
     biZero(remainder);
 
@@ -573,9 +594,7 @@ void biMod(BigInt* r, const BigInt* a, const BigInt* b) {
 
 
 void biMulMod1(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
-    BigInt tmp;
-    biMul(&tmp, a, b);
-    biMod(out, &tmp, mod);
+    biMulMod(out, a, b, mod);
 }
 
 int utf8_to_u32(const char* s, uint32_t* out, int max_count) {
@@ -678,9 +697,7 @@ void biToDecString(const BigInt* x, char* out, size_t out_len) {
 //TESTS
 
 void biMulModTest(BigInt* out, const BigInt* a, const BigInt* b, const BigInt* mod) {
-    BigInt tmp;
-    biMul(&tmp, a, b);   // full multiplication
-    biMod(out, &tmp, mod);  // then reduce modulo
+    biMulMod(out, a, b, mod);
 }
 
 void biPowmodTest(BigInt* res, const BigInt* base, const BigInt* exp, const BigInt* mod) {
@@ -693,14 +710,10 @@ void biPowmodTest(BigInt* res, const BigInt* base, const BigInt* exp, const BigI
 
     while (!biIsZero(&e)) {
         if (biIsOdd(&e)) {
-            BigInt tmp;
-            biMulModTest(&tmp, res, &b, mod);
-            biCopy(res, &tmp);
+            biMulMod(res, res, &b, mod);
         }
 
-        BigInt tmp;
-        biMulModTest(&tmp, &b, &b, mod);
-        biCopy(&b, &tmp);
+        biMulMod(&b, &b, &b, mod);
         biShr1(&e);
     }
 }

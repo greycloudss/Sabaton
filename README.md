@@ -43,8 +43,8 @@ WIP — core components exist but the project is actively being refined. Expect 
 | RSA cipher (cryptosystem)                  | ✓      | Done        |
 | Rabin and Blum–Goldwasser cryptosystems    | ✓      | Done        |
 | ElGamal cryptosystem and digital signature | ✓      | Done        |
-| Secret sharing                             | ✗      | —           |
-| Secret sharing schemes                     | ✗      | —           |
+| Secret sharing                             | ✗      | Done        |
+| Secret sharing schemes                     | ✗      | Done        |
 | Elliptic-curve cryptography                | ✓      | Done        |
 | Zero-knowledge proofs                      | ✓      | Done        |
 
