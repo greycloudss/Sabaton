@@ -51,7 +51,9 @@ CU_SOURCES = \
 	./internals/enhancements/cuda/aes.cu \
 	./internals/enhancements/cuda/secret_sharing.cu \
 	./internals/enhancements/cuda/elliptic_elgamal.cu \
-	./internals/enhancements/cuda/blum_goldwasser.cu
+	./internals/enhancements/cuda/blum_goldwasser.cu \
+	./internals/enhancements/cuda/a5.cu \
+	./internals/enhancements/cuda/block.cu
 
 CU_OBJECTS = $(patsubst ./%.cu,$(BUILD)/%.o,$(CU_SOURCES))
 OBJECTS    = $(C_OBJECTS) $(CU_OBJECTS)

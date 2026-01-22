@@ -43,8 +43,8 @@ WIP — core components exist but the project is actively being refined. Expect 
 | RSA cipher (cryptosystem)                  | ✓      | Done        |
 | Rabin and Blum–Goldwasser cryptosystems    | ✓      | Done        |
 | ElGamal cryptosystem and digital signature | ✓      | Done        |
-| Secret sharing                             | ✗      | Done        |
-| Secret sharing schemes                     | ✗      | Done        |
+| Secret sharing                             | ✓      | Done        |
+| Secret sharing schemes                     | ✓      | Done        |
 | Elliptic-curve cryptography                | ✓      | Done        |
 | Zero-knowledge proofs                      | ✓      | Done        |
 
@@ -149,17 +149,6 @@ Transcripts are deterministic for the same inputs; `seed:<n>` inside `-frag` is 
 * The project intentionally keeps cryptographic primitives local (in `internals/`) so it can run without internet or large external libs.
 * Unicode handling is performed by converting strings to code points and operating on indices, then encoding back to UTF-8.
 * Padding/odd-length block handling differs across cipher modules — keep that in mind if results seem unexpected.
-
----
-
-## Roadmap
-
-* CLI help/usage output and improved argument validation
-* Consistent, configurable padding for block ciphers
-* Multithreading for faster keyspace searches
-* Plugin system for adding/removing cipher & hash modules easily
-* Better error messages when keys are invalid (e.g., non-invertible Hill matrices)
-* Tests, examples, and sample datasets for common ciphers
 
 ---
 

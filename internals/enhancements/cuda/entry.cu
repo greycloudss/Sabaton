@@ -1,5 +1,6 @@
 #ifdef USE_CUDA
 #include "entry.h"
+#include "../../../util/string.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -23,6 +24,16 @@ void entryCudaEnhancement(Arguments* args) {
         g_funcFlag = (char)sel;
 
         const char* res = feistelBrute(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->block) {
+        char flag = 0;
+        char* keys = NULL;
+        feistel_extract(args->frag, &flag, &keys);
+        const char* res = blockCuda(args->encText, keys ? keys : args->frag, flag);
+        if (keys) free(keys);
         args->out = res;
         return;
     }
@@ -89,6 +100,12 @@ void entryCudaEnhancement(Arguments* args) {
 
     if (args->aes) {
         const char* res = aesBruteCuda(args->alph, args->encText, args->frag);
+        args->out = res;
+        return;
+    }
+
+    if (args->a5) {
+        const char* res = a5Cuda(args->alph, args->encText, args->frag);
         args->out = res;
         return;
     }

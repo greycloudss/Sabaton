@@ -2,6 +2,8 @@
 #include "../../../arguments.h"
 #include "../../cyphers/feistel.h"
 #include "../../cyphers/stream.h"
+#include "../../cyphers/block.h"
+#include "../../cyphers/a5.h"
 #include "../../cyphers/rsa.h"
 #include "../../cyphers/rabin.h"
 #include "../../cyphers/knapsack.h"
@@ -28,6 +30,8 @@
     const char* ellipticCuda(const char* alph, const char* encText, const char* frag);
     const char* elgamalCuda(const char* alph, const char* encText, const char* frag);
     const char* blumGoldwasserCuda(const char* alph, const char* encText, const char* frag);
+    const char* a5Cuda(const char* alph, const char* encText, const char* frag);
+    const char* blockCuda(const char* encText, const char* frag, char flag);
 
     #ifdef __cplusplus
     }

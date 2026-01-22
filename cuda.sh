@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-rm *.txt
+
 
 P="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY"
 STREAM_C="[170,47,136,212,30,148,212,200,193,207,101,148,110,46,41,237,3,78,255,2,229,111,251,169,11,58,37,50,227,163,172,96,47,237,177,3,132,211,188,181,201,126,159,110,46,59,231,24,60,154,8,233,111,251,199,120,39,42,87,252,176,191,5,53,133,189,24,151,222,173,219,167,113,158,126,92,59,231,19,82,255,2,229,127,234,204,29,61,93,65,249,190,174,96,36,131,212,25,134,205,173,219,211,114,148,101,46,42,235,17,84,139,1,233,119,158,199,17,61,56,70,245,163,180,5,53,154,177,4,151,194,200,193,208,114,159,127,87,32,236,19,60,139,19,233,119,234,208,12,36,50,50,228,177,191,107,53,148,160,2,145,222,173,181,211,96,148,101,90,54,228,25,73,141,100,248,110,251,199,12,42,59,91,230,163,218,113,54,136,186,30,154,200,161,205,167,99,134,110,64,59,251,5,89,137,1,226,25,234,222,29,61,41,75,245,175,189,109,53,237,160,29,134,213,188,204,201,126,159,110,46,59,234,31,78,139,29]"
@@ -24,6 +24,42 @@ AES_P="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN F
 AES_FRAG_ENC="enc:|p:101|a:3|b:5|T:1,2,3,5|K:0,0,0,0|R:1"
 AES_CIPHER=$(./sabaton.exe -decypher -aes -frag "$AES_FRAG_ENC" "$AES_P")
 ./sabaton.exe -decypher -gpu -aes -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "brute|max:15|p:101|a:3|b:5|T:1,2,3,5|R:1" "$AES_CIPHER" > gpu_aesv.txt
+
+# Block modes GPU test (reuse variant 33 cipher, keys [217,108,80], f=2)
+BLOCK_CT="[[107, 188], [100, 185], [104, 174], [107, 188], [100, 185], [118, 169], [122, 165], [117, 166], [115, 164], [108, 168], [104, 174], [114, 160], [105, 188], [105, 174], [112, 173], [114, 174], [96, 176], [116, 169], [114, 173], [103, 176], [111, 172], [114, 191], [116, 164], [101, 178], [97, 174], [100, 177], [100, 182], [106, 176], [97, 168], [115, 164], [110, 189], [106, 179]]"
+./sabaton.exe -decypher -gpu -block -frag "f=2;[217,108,80]" "$BLOCK_CT" > gpu_block.txt
+
+# A5/1 GPU brute: generate cipher from P_PREFIX with taps 0xE1, default config, then brute on GPU
+A5_CT=$(python - <<'PY'
+import json
+P = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """.encode("ascii")
+taps = 0xE1
+s0 = s1 = s2 = taps
+def parity(x):
+    x ^= x>>4; x ^= x>>2; x ^= x>>1; return x & 1
+def clock(state):
+    fb = parity(state & taps)
+    return ((state >> 1) | (fb << 7)) & 0xFF
+def reg_bit(state, idx): return (state >> idx) & 1
+def reg_out(state): return state & 1
+def next_bit():
+    global s0, s1, s2
+    c0, c1, c2 = reg_bit(s0,1), reg_bit(s1,2), reg_bit(s2,3)
+    maj = 1 if (c0+c1+c2)>=2 else 0
+    if c0==maj: s0 = clock(s0)
+    if c1==maj: s1 = clock(s1)
+    if c2==maj: s2 = clock(s2)
+    return reg_out(s0) ^ reg_out(s1) ^ reg_out(s2)
+cipher=[]
+for b in P:
+    ks=0
+    for _ in range(8):
+        ks = (ks<<1)|next_bit()
+    cipher.append(b ^ ks)
+print(json.dumps(cipher))
+PY
+)
+./sabaton.exe -decypher -gpu -a5 -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " "$A5_CT" > gpu_a5.txt
 
 # --- New CUDA modules (use same plaintext start as other GPU samples) ---
 # Shared target plaintext prefix (matches beginning of the long sentence)
