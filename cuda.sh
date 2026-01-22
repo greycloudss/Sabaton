@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
+set -euo pipefail
+rm *.txt
 
 P="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY"
 STREAM_C="[170,47,136,212,30,148,212,200,193,207,101,148,110,46,41,237,3,78,255,2,229,111,251,169,11,58,37,50,227,163,172,96,47,237,177,3,132,211,188,181,201,126,159,110,46,59,231,24,60,154,8,233,111,251,199,120,39,42,87,252,176,191,5,53,133,189,24,151,222,173,219,167,113,158,126,92,59,231,19,82,255,2,229,127,234,204,29,61,93,65,249,190,174,96,36,131,212,25,134,205,173,219,211,114,148,101,46,42,235,17,84,139,1,233,119,158,199,17,61,56,70,245,163,180,5,53,154,177,4,151,194,200,193,208,114,159,127,87,32,236,19,60,139,19,233,119,234,208,12,36,50,50,228,177,191,107,53,148,160,2,145,222,173,181,211,96,148,101,90,54,228,25,73,141,100,248,110,251,199,12,42,59,91,230,163,218,113,54,136,186,30,154,200,161,205,167,99,134,110,64,59,251,5,89,137,1,226,25,234,222,29,61,41,75,245,175,189,109,53,237,160,29,134,213,188,204,201,126,159,110,46,59,234,31,78,139,29]"
 ./sabaton.exe -decypher -gpu -stream -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "8;brute" "$STREAM_C" > gpu_stream.txt
 
-# RSA via CUDA modexp (known key, up to 128-bit) for the 30-word text (6-char blocks)
+# RSA via CUDA brute (factor small n) on the full ciphertext blocks
 RSA_N=999985999949
 RSA_E=65537
-RSA_D=83020476125
 RSA_CTS="819528315181,289367403892,168011223980,154764992935,888231022824,428735446600,663260008225,515561926,753222343544,976103668885,650389798331,301406305923,254809230935,560275228974,109449707644,69635989805,464296648987,749715881849,225845025500,378617369545,546386188415,535400631183,958549230250,819528315181,122585968252,528686002004,772381817010,956983719749,835122893567,504002506949,234418828290,958549230250,519466950947,407844704675,198767638858,238497858877,472603747155,83789084960,346242058010,677920197666"
-./sabaton.exe -decypher -gpu -rsa -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "[n,e,d]:[$RSA_N,$RSA_E,$RSA_D]" "[$RSA_CTS]" > gpu_rsa.txt
+./sabaton.exe -decypher -gpu -rsa -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "brute:$RSA_N,$RSA_E" "[$RSA_CTS]" > gpu_rsa.txt
 
 # Rabin on the same 30-word text (6-char blocks), factors 999983*1000003 (both 3 mod 4)
 RABIN_N=999985999949
@@ -22,7 +23,7 @@ RABIN_CTS="810378256410,214283303945,910500731386,221749306342,544614313965,7363
 AES_P="ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY"
 AES_FRAG_ENC="enc:|p:101|a:3|b:5|T:1,2,3,5|K:0,0,0,0|R:1"
 AES_CIPHER=$(./sabaton.exe -decypher -aes -frag "$AES_FRAG_ENC" "$AES_P")
-./sabaton.exe -decypher -gpu -aes -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "brute|max:0|p:101|a:3|b:5|T:1,2,3,5|R:1" "$AES_CIPHER" > gpu_aesv.txt
+./sabaton.exe -decypher -gpu -aes -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "brute|max:15|p:101|a:3|b:5|T:1,2,3,5|R:1" "$AES_CIPHER" > gpu_aesv.txt
 
 # --- New CUDA modules (use same plaintext start as other GPU samples) ---
 # Shared target plaintext prefix (matches beginning of the long sentence)
@@ -38,9 +39,8 @@ S2=$((S % 1000033))
 S3=$((S % 1000037))
 ./sabaton.exe -decypher -gpu -asmuth -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "$S1,$S2,$S3|1000003,1000033,1000037|4000000000" "$P_PREFIX" > gpu_asmuth.txt
 
-# Elliptic Menezes–Vanstone decrypt producing the full P_PREFIX:
-# Curve: y^2 = x^3 + x - 1 mod 101 (point (1,1) is on-curve). Using priv r=1 and R=(1,1) sets k1=k2=1,
-# so ciphertext embeds ASCII codes directly.
+# Elliptic Menezes–Vanstone brute: search r in [1..50] (true r=1 is in range)
+# Curve: y^2 = x^3 + x - 1 mod 101 (point (1,1) is on-curve).
 ELL_CIPHER=$(python - <<'PY'
 import json
 plain = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """
@@ -53,9 +53,9 @@ for i in range(0, len(plain), 2):
 print(json.dumps(blocks))
 PY
 )
-./sabaton.exe -decypher -gpu -ellipticCurve -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "mode:mv|q:101|a:1|b:100|P:[1,1]|n:101|r:1" "$ELL_CIPHER" > gpu_elliptic.txt
+./sabaton.exe -decypher -gpu -ellipticCurve -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "mode:mv|q:101|a:1|b:100|P:[1,1]|n:101|maxr:50" "$ELL_CIPHER" > gpu_elliptic.txt
 
-# ElGamal test (mod prime, per-byte encryption)
+# ElGamal brute (search a in [1..20000])
 ELG_CIPHER=$(python - <<'PY'
 import json
 p = 104729
@@ -72,15 +72,22 @@ for ch in plain.encode('ascii'):
 print(json.dumps(c2s))
 PY
 )
-./sabaton.exe -decypher -gpu -elgamal -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "p:104729|g:3|a:12345" "$ELG_CIPHER" > gpu_elgamal.txt
+ELG_BETA=$(python - <<'PY'
+p = 104729
+g = 3
+a = 12345
+print(pow(g, a, p))
+PY
+)
+./sabaton.exe -decypher -gpu -elgamal -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "p:104729|g:3|beta:$ELG_BETA|max:20000" "$ELG_CIPHER" > gpu_elgamal.txt
 
-# Blum-Goldwasser-style BBS mask with known seed
+# Blum-Goldwasser-style BBS mask with brute-forced seed (seed within max range)
 BG_CIPHER=$(python - <<'PY'
 import json
 p = 1000003
 q = 1000033
 n = p * q
-x = 987654321
+x = 12345
 plain = """ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN EIGHTEEN NINETEEN TWENTY TWENTYONE TWENTYTWO TWENTYTHREE TWENTYFOUR TWENTYFIVE TWENTYSIX TWENTYSEVEN TWENTYEIGHT TWENTYNINE THIRTY   """
 c = []
 xi = x % n
@@ -91,4 +98,4 @@ for b in plain.encode('ascii'):
 print(json.dumps(c))
 PY
 )
-./sabaton.exe -decypher -gpu -rabin -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "bg:1000003|1000033|987654321" "$BG_CIPHER" > gpu_bg.txt
+./sabaton.exe -decypher -gpu -rabin -alph "ABCDEFGHIJKLMNOPQRSTUVWXYZ " -frag "bg:1000003|1000033|brute:20000" "$BG_CIPHER" > gpu_bg.txt

@@ -204,9 +204,12 @@ const char* ellipticEntry(const char* alph, const char* encText, const char* fra
     if (!ok) n_ll = fragGetLongLong(&map, "order", 0, &ok);
     if (!ok || n_ll <= 1){ fragmapFree(&map); return strdup("[bad/missing n]"); }
 
+    long long maxr_ll = fragGetLongLong(&map, "maxr", 0, &ok);
+    if (!ok) maxr_ll = 0;
+
     long long r_ll = fragGetLongLong(&map, "r", 0, &ok);
     if (!ok) r_ll = fragGetLongLong(&map, "priv", 0, &ok);
-    if (!ok || r_ll <= 0){ fragmapFree(&map); return strdup("[bad/missing r]"); }
+    if ((!ok || r_ll <= 0) && maxr_ll <= 0){ fragmapFree(&map); return strdup("[bad/missing r]"); }
 
     const char* Pstr = fragGetScalar(&map, "P");
     if (!Pstr) Pstr = fragGetScalar(&map, "base");
@@ -239,9 +242,27 @@ const char* ellipticEntry(const char* alph, const char* encText, const char* fra
         doDecrypt = has_char(encText, '[');
     }
 
-    char* out = doDecrypt
-        ? mv_decrypt(&E, n, priv_r, encText)
-        : elgamal_sign(&E, n, P, priv_r, encText, &map);
+    char* out = NULL;
+    if (doDecrypt) {
+        if (r_ll > 0) {
+            out = mv_decrypt(&E, n, priv_r, encText);
+        } else if (maxr_ll > 0) {
+            const char* alphabet = (alph && *alph) ? alph : "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+            for (unsigned long long r_try = 1; r_try <= (unsigned long long)maxr_ll; ++r_try) {
+                char* cand = mv_decrypt(&E, n, r_try, encText);
+                if (!cand) continue;
+                int okPlain = 1;
+                for (const unsigned char* p = (const unsigned char*)cand; *p; ++p) {
+                    if (!strchr(alphabet, *p)) { okPlain = 0; break; }
+                }
+                if (okPlain) { out = cand; break; }
+                free(cand);
+            }
+            if (!out) out = strdup("[elliptic brute] no key found");
+        }
+    } else {
+        out = elgamal_sign(&E, n, P, priv_r, encText, &map);
+    }
 
     fragmapFree(&map);
     return out ? out : strdup("[alloc failed]");

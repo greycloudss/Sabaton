@@ -306,13 +306,24 @@ static int parse_pair(const char* frag, uint64_t* a, uint64_t* b) {
 
 extern "C" const char* rsaBruteCuda(const char* alph, const char* encText, const char* frag) {
     (void)alph;
-    static char outbuf[256];
+    static char outbuf[2048];
     uint64_t n = 0, e = 0;
-    if (!parse_pair(frag, &n, &e) || !encText) return "[rsa cuda] frag must be brute:[n,e] and ciphertext int";
+    if (!parse_pair(frag, &n, &e) || !encText) return "[rsa cuda] frag must be brute:[n,e] and ciphertext int/list";
 
-    int okC = 0;
-    uint64_t c = parse_u64(encText, &okC);
-    if (!okC) return "[rsa cuda] ciphertext must be small integer";
+    /* parse one or many ciphertext integers */
+    uint64_t cvals[128];
+    int ccount = 0;
+    {
+        const char* p = encText;
+        while (*p && ccount < 128) {
+            while (*p && (*p < '0' || *p > '9')) ++p;
+            if (!*p) break;
+            uint64_t v = 0;
+            while (*p >= '0' && *p <= '9') { v = v * 10 + (uint64_t)(*p - '0'); ++p; }
+            cvals[ccount++] = v;
+        }
+    }
+    if (ccount == 0) return "[rsa cuda] ciphertext must be integer or list";
 
     if (n < 4 || e == 0) return "[rsa cuda] invalid n or e";
 
@@ -327,11 +338,21 @@ extern "C" const char* rsaBruteCuda(const char* alph, const char* encText, const
     int ok = 0;
     uint64_t d = egcd_inv64(e % phi, phi, &ok);
     if (!ok) return "[rsa cuda] inverse failed";
-    uint64_t m = modexp64(c, d, n);
-    const char* txt = decode_u64_text(m, alph);
-    snprintf(outbuf, sizeof(outbuf), "p=%llu q=%llu d=%llu m=%llu\n%s",
+
+    char text[1024]; text[0] = '\0';
+    uint64_t last_m = 0;
+    for (int i = 0; i < ccount; ++i) {
+        uint64_t m = modexp64(cvals[i], d, n);
+        last_m = m;
+        const char* t = decode_u64_text(m, alph);
+        strncat(text, t, sizeof(text) - strlen(text) - 1);
+    }
+
+    /* Return plaintext first (per CLI expectation), then factor info. */
+    snprintf(outbuf, sizeof(outbuf), "%s\np=%llu q=%llu d=%llu last_m=%llu",
+             text,
              (unsigned long long)p, (unsigned long long)q,
-             (unsigned long long)d, (unsigned long long)m, txt);
+             (unsigned long long)d, (unsigned long long)last_m);
     return outbuf;
 }
 

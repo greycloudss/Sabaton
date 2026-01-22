@@ -172,6 +172,22 @@ extern "C" const char* feistelBrute(const char* alph, const char* encText, const
             }
         }
 
+        /* Also persist plaintext for convenience */
+        char pfname[64];
+        w = snprintf(pfname, sizeof(pfname), "feistel-plain-%d.txt", rounds);
+        if (w > 0 && w < (int)sizeof(pfname)) {
+            FILE* f = fopen(pfname, "a");
+            if (f) {
+                for (int i = 0; i < bigN; ++i) {
+                    unsigned char c = tmpPlain[i];
+                    if (c == '\0') c = ' ';
+                    fputc((int)c, f);
+                }
+                fputc('\n', f);
+                fclose(f);
+            }
+        }
+
         char* buf = ensure_plain_buf((size_t)bigN);
         if (buf) {
             for (int i = 0; i < bigN; ++i) {
@@ -182,6 +198,29 @@ extern "C" const char* feistelBrute(const char* alph, const char* encText, const
             buf[bigN] = '\0';
             bestPlain = buf;
             bestRounds = rounds;
+            /* prepend key info for display */
+            char header[128];
+            int hw = snprintf(header, sizeof(header), "keys:[");
+            if (hw > 0 && hw < (int)sizeof(header)) {
+                size_t pos = (size_t)hw;
+                for (int i = 0; i < rounds; ++i) {
+                    int h2 = snprintf(header + pos, sizeof(header) - pos, "%d%s", key[i], (i + 1 < rounds) ? "," : "]");
+                    if (h2 <= 0) break;
+                    pos += (size_t)h2;
+                    if (pos >= sizeof(header)) break;
+                }
+                if (pos + 1 < sizeof(header)) {
+                    header[pos++] = '\n';
+                    header[pos] = '\0';
+                }
+                size_t total = pos + (size_t)bigN + 1;
+                char* combo = ensure_plain_buf(total);
+                if (combo) {
+                    memcpy(combo, header, pos);
+                    memcpy(combo + pos, buf, (size_t)bigN + 1);
+                    bestPlain = combo;
+                }
+            }
         }
     }
     print("Feistel brute-force completed, the output stdout output might be wrong, instead - check the keys in the .txt files.\n");
