@@ -95,7 +95,7 @@ __device__ __forceinline__ int is_allowed_char(uint8_t c) {
 }
 
 // Search over (maxKey+1)^4 key space (bounded on host).
-__global__ void aesBruteKernel(const int* cblock, int p, int a, int b, int aInv, const int* tInv, const int* invTable, int maxKey, int rounds, int* found, int* outKey) {
+__global__ void aesBruteKernel(const int* cipher, int blocks, int p, int a, int b, int aInv, const int* tInv, const int* invTable, int maxKey, int rounds, int* found, int* outKey) {
     unsigned long long tid = (unsigned long long)blockIdx.x * (unsigned long long)blockDim.x + (unsigned long long)threadIdx.x;
     unsigned long long stride = (unsigned long long)gridDim.x * (unsigned long long)blockDim.x;
     unsigned long long base = (unsigned long long)(maxKey + 1);
@@ -111,16 +111,17 @@ __global__ void aesBruteKernel(const int* cblock, int p, int a, int b, int aInv,
             tmp /= base;
         }
 
-        int plain[4];
-        if (!decrypt_full_dev(cblock, key, rounds, p, a, b, aInv, tInv, invTable, plain)) continue;
-
-        // Map to ASCII like CPU decryptAESV does.
-        int ok = 1;
-        for (int i = 0; i < 4; ++i) {
-            uint8_t c = (uint8_t)(mod_dev(plain[i], p) & 0xFF);
-            if (!is_allowed_char(c)) { ok = 0; break; }
+        int ok_all = 1;
+        for (int blk = 0; blk < blocks && ok_all; ++blk) {
+            int plain[4];
+            const int* cblock = &cipher[blk * 4];
+            if (!decrypt_full_dev(cblock, key, rounds, p, a, b, aInv, tInv, invTable, plain)) { ok_all = 0; break; }
+            for (int i = 0; i < 4; ++i) {
+                uint8_t c = (uint8_t)(mod_dev(plain[i], p) & 0xFF);
+                if (!is_allowed_char(c)) { ok_all = 0; break; }
+            }
         }
-        if (!ok) continue;
+        if (!ok_all) continue;
 
         if (atomicCAS(found, 0, 1) == 0) {
             for (int i = 0; i < 4; ++i) outKey[i] = key[i];
@@ -227,26 +228,26 @@ extern "C" const char* aesBruteCuda(const char* alph, const char* encText, const
     cudaMemcpyToSymbol(d_allowed_aes, allowed, (size_t)allowed_len);
     cudaMemcpyToSymbol(d_allowed_aes_len, &allowed_len, sizeof(int));
 
-    int* d_block = NULL;
+    int* d_cipher = NULL;
     int* d_tInv = NULL;
     int* d_invTable = NULL;
     int* d_found = NULL;
     int* d_key = NULL;
 
-    cudaMalloc((void**)&d_block, 4 * sizeof(int));
+    cudaMalloc((void**)&d_cipher, (size_t)nCipher * sizeof(int));
     cudaMalloc((void**)&d_tInv, 4 * sizeof(int));
     cudaMalloc((void**)&d_invTable, (size_t)p * sizeof(int));
     cudaMalloc((void**)&d_found, sizeof(int));
     cudaMalloc((void**)&d_key, 4 * sizeof(int));
 
-    cudaMemcpy(d_block, cipher, 4 * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_cipher, cipher, (size_t)nCipher * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_tInv, tInv, 4 * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_invTable, invTable, (size_t)p * sizeof(int), cudaMemcpyHostToDevice);
     int zero = 0;
     cudaMemcpy(d_found, &zero, sizeof(int), cudaMemcpyHostToDevice);
 
     dim3 threads(256), blocks(256);
-    aesBruteKernel<<<blocks, threads>>>(d_block, p, a, b, aInv, d_tInv, d_invTable, maxKey, rounds, d_found, d_key);
+    aesBruteKernel<<<blocks, threads>>>(d_cipher, nCipher / 4, p, a, b, aInv, d_tInv, d_invTable, maxKey, rounds, d_found, d_key);
     cudaDeviceSynchronize();
 
     int h_found = 0;
@@ -256,7 +257,7 @@ extern "C" const char* aesBruteCuda(const char* alph, const char* encText, const
         cudaMemcpy(h_key, d_key, 4 * sizeof(int), cudaMemcpyDeviceToHost);
     }
 
-    cudaFree(d_block); cudaFree(d_tInv); cudaFree(d_invTable);
+    cudaFree(d_cipher); cudaFree(d_tInv); cudaFree(d_invTable);
     cudaFree(d_found); cudaFree(d_key);
     free(invTable);
 

@@ -8,4 +8,3 @@
 
 /* Entry point that mirrors other cipher modules. */
 const char* zkpEntry(const char* alph, const char* encText, const char* frag);
-

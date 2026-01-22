@@ -432,6 +432,13 @@ void decypher(Arguments *args) {
     if (!args || !args->decypher)
         return;
 
+    #ifdef USE_CUDA
+        if (args->gpu) {
+            entryCudaEnhancement(args);
+            return;
+        }
+    #endif
+
     if (args->banner)
         printASCII();
 
